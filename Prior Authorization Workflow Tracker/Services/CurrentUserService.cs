@@ -64,8 +64,28 @@ public sealed class CurrentUserService : ICurrentUserService
     private System.Security.Claims.ClaimsPrincipal? GetUser()
     {
         if (_user is not null) return _user;
-        var authState = _authStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
-        _user = authState.User;
+
+        // When called from a Razor Page (e.g. Login/Logout), IHttpContextAccessor has
+        // the authenticated principal and ServerAuthenticationStateProvider is not available.
+        // Fall back to HttpContext.User to avoid InvalidOperationException (BLIND-003).
+        var httpUser = _httpContextAccessor.HttpContext?.User;
+        if (httpUser?.Identity?.IsAuthenticated == true)
+        {
+            _user = httpUser;
+            return _user;
+        }
+
+        try
+        {
+            var authState = _authStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
+            _user = authState.User;
+        }
+        catch (InvalidOperationException)
+        {
+            // Outside a Blazor circuit and no authenticated HTTP context — return null.
+            _user = httpUser;
+        }
+
         return _user;
     }
 

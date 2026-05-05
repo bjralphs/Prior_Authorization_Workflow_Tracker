@@ -108,9 +108,8 @@ try
     {
         app.UseExceptionHandler("/Error", createScopeForErrors: true);
         app.UseHsts();
+        app.UseHttpsRedirection();
     }
-
-    app.UseHttpsRedirection();
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseMiddleware<CorrelationIdMiddleware>();
     app.UseSerilogRequestLogging();
