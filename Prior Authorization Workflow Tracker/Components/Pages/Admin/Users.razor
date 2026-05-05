@@ -57,17 +57,22 @@
             <div class="row g-3">
                 <div class="col-sm-6">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control @(_emailError is not null ? "is-invalid" : "")" @bind="_newEmail" @bind:event="oninput" />
+                    <input type="email" class="form-control @(_emailError is not null ? "is-invalid" : "")"
+                           value="@_newEmail"
+                           @oninput="@(e => { _newEmail = e.Value?.ToString() ?? string.Empty; _emailError = null; })" />
                     @if (_emailError is not null) { <div class="invalid-feedback">@_emailError</div> }
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @(_fullNameError is not null ? "is-invalid" : "")" @bind="_newFullName" @bind:event="oninput" />
+                    <input type="text" class="form-control @(_fullNameError is not null ? "is-invalid" : "")"
+                           value="@_newFullName"
+                           @oninput="@(e => { _newFullName = e.Value?.ToString() ?? string.Empty; _fullNameError = null; })" />
                     @if (_fullNameError is not null) { <div class="invalid-feedback">@_fullNameError</div> }
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Role <span class="text-danger">*</span></label>
-                    <select class="form-select @(_roleError is not null ? "is-invalid" : "")" @bind="_newRole">
+                    <select class="form-select @(_roleError is not null ? "is-invalid" : "")"
+                            @bind="_newRole" @bind:after="@(() => _roleError = null)">
                         <option value="">— Select role —</option>
                         <option value="@Roles.Specialist">@Roles.Specialist</option>
                         <option value="@Roles.Provider">@Roles.Provider</option>
@@ -79,7 +84,9 @@
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Department <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @(_departmentError is not null ? "is-invalid" : "")" @bind="_newDepartment" @bind:event="oninput" />
+                    <input type="text" class="form-control @(_departmentError is not null ? "is-invalid" : "")"
+                           value="@_newDepartment"
+                           @oninput="@(e => { _newDepartment = e.Value?.ToString() ?? string.Empty; _departmentError = null; })" />
                     @if (_departmentError is not null) { <div class="invalid-feedback">@_departmentError</div> }
                 </div>
             </div>
