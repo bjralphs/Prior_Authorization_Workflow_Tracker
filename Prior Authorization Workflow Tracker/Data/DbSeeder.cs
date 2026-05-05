@@ -328,7 +328,7 @@ public sealed class DbSeeder
         requests.Add(MakeRequest(specialist1.Id, provider2.Id, "MRN-1017", "Quinn Clark",      new DateTime(1970, 11, 11),0, 1, "M16.12", "Hip OA with avascular necrosis.",                        PaStatus.UnderReview, PaPriority.Routine,  18));
         requests.Add(MakeRequest(specialist2.Id, provider3.Id, "MRN-1018", "Rachel Lewis",     new DateTime(1953, 4, 25), 1, 19, "K44.9",  "Hiatal hernia with severe GERD, surgery indicated.",    PaStatus.UnderReview, PaPriority.Routine,  22));
         requests.Add(MakeRequest(specialist1.Id, provider1.Id, "MRN-1019", "Steven Lee",       new DateTime(1937, 9, 6),  2, 21, "M20.10", "Bunionectomy, conservative treatment unsuccessful.",     PaStatus.UnderReview, PaPriority.Routine,  16));
-        requests.Add(MakeRequest(specialist2.Id, provider2.Id, "MRN-1020", "Tina Young",       new DateTime(1980, 12, 20),3, 24, "N20.0",  "Nephrolithiasis 1.2 cm, ESWL indicated.",               PaStatus.UnderReview, PaPriority.Urgent,   9));
+        requests.Add(MakeRequest(specialist2.Id, provider2.Id, "MRN-1020", "Tina Young",       new DateTime(1980, 12, 20),3, 23, "N20.0",  "Nephrolithiasis 1.2 cm, ESWL indicated.",               PaStatus.UnderReview, PaPriority.Urgent,   9));
         requests.Add(MakeRequest(specialist1.Id, provider3.Id, "MRN-1021", "Uma Hernandez",    new DateTime(1965, 6, 17), 4, 15, "O30.003","Twin pregnancy, anatomy ultrasound required.",           PaStatus.UnderReview, PaPriority.Urgent,   11));
 
         // Approved: 15

@@ -89,14 +89,14 @@ Navigate to `https://localhost:7014` (or `http://localhost:5235`).
 
 | Role | Email | Password |
 |---|---|---|
-| Authorization Specialist | specialist1@pademo.internal | Demo@1234! |
-| Authorization Specialist | specialist2@pademo.internal | Demo@1234! |
-| Treating Provider | provider1@pademo.internal | Demo@1234! |
-| Treating Provider | provider2@pademo.internal | Demo@1234! |
-| Treating Provider | provider3@pademo.internal | Demo@1234! |
-| Payer Reviewer | reviewer1@pademo.internal | Demo@1234! |
-| Billing Manager | billing1@pademo.internal | Demo@1234! |
-| Administrator | admin@pademo.internal | Demo@1234! |
+| Authorization Specialist | specialist@pademo.com | Demo@1234 |
+| Authorization Specialist | specialist2@pademo.com | Demo@1234 |
+| Treating Provider | provider@pademo.com | Demo@1234 |
+| Treating Provider | provider2@pademo.com | Demo@1234 |
+| Treating Provider | provider3@pademo.com | Demo@1234 |
+| Payer Reviewer | reviewer@pademo.com | Demo@1234 |
+| Billing Manager | billing@pademo.com | Demo@1234 |
+| Administrator | admin@pademo.com | Demo@1234 |
 
 > **Note:** Demo accounts and seed data are only created in the `Development` environment.
 
