@@ -47,18 +47,27 @@
     <div class="card mb-4">
         <div class="card-header">Create New User</div>
         <div class="card-body">
+            @if (_formError is not null)
+            {
+                <div class="alert alert-danger alert-dismissible py-2 mb-3">
+                    @_formError
+                    <button type="button" class="btn-close" @onclick="() => _formError = null"></button>
+                </div>
+            }
             <div class="row g-3">
                 <div class="col-sm-6">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control" @bind="_newEmail" />
+                    <input type="email" class="form-control @(_emailError is not null ? "is-invalid" : "")" @bind="_newEmail" @bind:event="oninput" />
+                    @if (_emailError is not null) { <div class="invalid-feedback">@_emailError</div> }
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" @bind="_newFullName" />
+                    <input type="text" class="form-control @(_fullNameError is not null ? "is-invalid" : "")" @bind="_newFullName" @bind:event="oninput" />
+                    @if (_fullNameError is not null) { <div class="invalid-feedback">@_fullNameError</div> }
                 </div>
                 <div class="col-sm-6">
                     <label class="form-label">Role <span class="text-danger">*</span></label>
-                    <select class="form-select" @bind="_newRole">
+                    <select class="form-select @(_roleError is not null ? "is-invalid" : "")" @bind="_newRole">
                         <option value="">— Select role —</option>
                         <option value="@Roles.Specialist">@Roles.Specialist</option>
                         <option value="@Roles.Provider">@Roles.Provider</option>
@@ -66,10 +75,12 @@
                         <option value="@Roles.Reviewer">@Roles.Reviewer</option>
                         <option value="@Roles.Admin">@Roles.Admin</option>
                     </select>
+                    @if (_roleError is not null) { <div class="invalid-feedback">@_roleError</div> }
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label">Department</label>
-                    <input type="text" class="form-control" @bind="_newDepartment" />
+                    <label class="form-label">Department <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control @(_departmentError is not null ? "is-invalid" : "")" @bind="_newDepartment" @bind:event="oninput" />
+                    @if (_departmentError is not null) { <div class="invalid-feedback">@_departmentError</div> }
                 </div>
             </div>
             <div class="mt-3 d-flex gap-2">
@@ -203,6 +214,13 @@ else
     private string _newRole = string.Empty;
     private string _newDepartment = string.Empty;
 
+    // Per-field validation errors
+    private string? _formError;
+    private string? _emailError;
+    private string? _fullNameError;
+    private string? _roleError;
+    private string? _departmentError;
+
     // Role edit inline
     private string? _editingRoleUserId;
     private string _editingRole = string.Empty;
@@ -232,6 +250,7 @@ else
     {
         _newEmail = _newFullName = _newRole = _newDepartment = string.Empty;
         _newUserPassword = null;
+        _formError = _emailError = _fullNameError = _roleError = _departmentError = null;
         _showCreateForm = true;
     }
 
@@ -254,23 +273,55 @@ else
         }
     }
 
+    private bool ValidateCreateForm()
+    {
+        _emailError = _fullNameError = _roleError = _departmentError = null;
+        bool valid = true;
+
+        if (string.IsNullOrWhiteSpace(_newEmail))
+        {
+            _emailError = "Email is required.";
+            valid = false;
+        }
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(_newEmail.Trim(),
+            @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            _emailError = "Enter a valid email address.";
+            valid = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newFullName))
+        {
+            _fullNameError = "Full name is required.";
+            valid = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newRole))
+        {
+            _roleError = "Role is required.";
+            valid = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newDepartment))
+        {
+            _departmentError = "Department is required.";
+            valid = false;
+        }
+
+        return valid;
+    }
+
     private async Task CreateUserAsync()
     {
-        _errorMessage = null;
-        if (string.IsNullOrWhiteSpace(_newEmail) ||
-            string.IsNullOrWhiteSpace(_newFullName) ||
-            string.IsNullOrWhiteSpace(_newRole))
-        {
-            _errorMessage = "Email, Full Name, and Role are required.";
-            return;
-        }
+        _formError = null;
+        if (!ValidateCreateForm()) return;
 
         _saving = true;
         try
         {
             var (user, password) = await UserMgmt.CreateUserAsync(
-                _newEmail, _newFullName, _newRole,
-                string.IsNullOrWhiteSpace(_newDepartment) ? null : _newDepartment);
+                _newEmail.Trim(), _newFullName.Trim(), _newRole,
+                _newDepartment.Trim());
             _newUserPassword = password;
             _showCreateForm = false;
             Toast.ShowSuccess($"User {user.Email} created.");
@@ -279,7 +330,7 @@ else
         catch (Exception ex)
         {
             Logger.LogError(ex, "User creation failed.");
-            _errorMessage = ex.Message;
+            _formError = ex.Message;
         }
         finally
         {
