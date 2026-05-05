@@ -1,0 +1,678 @@
+@page "/reports"
+@attribute [Authorize(Roles = "Authorization Specialist,Billing Manager,Payer Reviewer,Administrator")]
+@inject IReportingService ReportingSvc
+@inject ICsvExportService CsvExport
+@inject ICurrentUserService CurrentUser
+@inject ToastService Toast
+@inject IJSRuntime JS
+@inject ILogger<Reports> Logger
+@using Microsoft.JSInterop
+
+<PageTitle>Reports — PA Tracker</PageTitle>
+<Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Reports", (string?)null) })" />
+
+<h4 class="mb-4">Reporting</h4>
+
+@* ── Tab navigation ───────────────────────────────────────────────────────── *@
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "status" ? "active" : "")"
+                @onclick='() => SetTab("status")'>Status Summary</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "denials" ? "active" : "")"
+                @onclick='() => SetTab("denials")'>Denial Analysis</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "volume" ? "active" : "")"
+                @onclick='() => SetTab("volume")'>Monthly Volume</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "expiring" ? "active" : "")"
+                @onclick='() => SetTab("expiring")'>Expiring Authorizations</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "turnaround" ? "active" : "")"
+                @onclick='() => SetTab("turnaround")'>Turnaround Time</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "providervolume" ? "active" : "")"
+                @onclick='() => SetTab("providervolume")'>Provider Volume</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "approvalrate" ? "active" : "")"
+                @onclick='() => SetTab("approvalrate")'>Approval Rate</button>
+    </li>
+</ul>
+
+@* ── Status Summary tab ───────────────────────────────────────────────────── *@
+@if (_activeTab == "status")
+{
+    <div class="card">
+        <div class="card-header">Request Status Breakdown</div>
+        <div class="card-body p-0">
+            @if (_loadingStatus)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_statusSummary.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">No data available.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Status</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Overdue</th>
+                            <th class="text-end">% Overdue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _statusSummary)
+                        {
+                            <tr>
+                                <td><StatusBadge Status="row.Status" /></td>
+                                <td class="text-end">@row.Count</td>
+                                <td class="text-end">
+                                    @if (row.OverdueCount > 0)
+                                    {
+                                        <span class="badge bg-danger">@row.OverdueCount</span>
+                                    }
+                                    else { <span>0</span> }
+                                </td>
+                                <td class="text-end">
+                                    @if (row.Count > 0)
+                                    {
+                                        @(Math.Round(row.OverdueCount * 100.0 / row.Count, 1))
+                                        <text>%</text>
+                                    }
+                                    else { <span>—</span> }
+                                </td>
+                            </tr>
+                        }
+                        <tr class="fw-semibold">
+                            <td>Total</td>
+                            <td class="text-end">@_statusSummary.Sum(r => r.Count)</td>
+                            <td class="text-end">@_statusSummary.Sum(r => r.OverdueCount)</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@* ── Denial Analysis tab ──────────────────────────────────────────────────── *@
+@if (_activeTab == "denials")
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-sm-4">
+                    <label class="form-label form-label-sm">From</label>
+                    <input type="date" class="form-control form-control-sm" @bind="_denialFrom" />
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label form-label-sm">To</label>
+                    <input type="date" class="form-control form-control-sm" @bind="_denialTo" />
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary btn-sm" @onclick="LoadDenialsAsync">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Denial Reasons</div>
+        <div class="card-body p-0">
+            @if (_loadingDenials)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_denials.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">No denials in the selected date range.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Code</th>
+                            <th>Description</th>
+                            <th class="text-end">Count</th>
+                            <th class="text-end">%</th>
+                            <th>Appealable?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _denials)
+                        {
+                            <tr>
+                                <td><code>@row.ReasonCode</code></td>
+                                <td>@row.Description</td>
+                                <td class="text-end">@row.Count</td>
+                                <td class="text-end">@row.Percentage%</td>
+                                <td>
+                                    @if (row.IsAppealable)
+                                    {
+                                        <span class="badge bg-success">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">No</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@* ── Monthly Volume tab ───────────────────────────────────────────────────── *@
+@if (_activeTab == "volume")
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <label class="form-label form-label-sm">Months to show</label>
+            <div class="d-flex gap-2">
+                @foreach (var m in new[] { 3, 6, 12 })
+                {
+                    var months = m;
+                    <button class="btn btn-sm @(_volumeMonths == months ? "btn-primary" : "btn-outline-primary")"
+                            @onclick="() => SetVolumeMonths(months)">
+                        @months months
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Monthly Submission Volume</div>
+        <div class="card-body p-0">
+            @if (_loadingVolume)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_volume.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">No submission data available.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">Submitted</th>
+                            <th class="text-end">Approved</th>
+                            <th class="text-end">Denied</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _volume)
+                        {
+                            <tr>
+                                <td>@(new DateTime(row.Year, row.Month, 1).ToString("MMM yyyy"))</td>
+                                <td class="text-end">@row.Submitted</td>
+                                <td class="text-end text-success">@row.Approved</td>
+                                <td class="text-end text-danger">@row.Denied</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@* ── Expiring Authorizations tab ──────────────────────────────────────────── *@
+@if (_activeTab == "expiring")
+{
+    <div class="card mb-3">
+        <div class="card-body d-flex align-items-end gap-3">
+            <div>
+                <label class="form-label form-label-sm">Days ahead</label>
+                <input type="number" class="form-control form-control-sm" style="width:100px;"
+                       @bind="_expiringDays" min="1" max="365" />
+            </div>
+            <button class="btn btn-primary btn-sm" @onclick="LoadExpiringAsync">Apply</button>
+
+            <AuthorizeView Roles="@($"{Roles.BillingManager},{Roles.Admin}")">
+                <Authorized>
+                    <button class="btn btn-outline-success btn-sm ms-auto"
+                            @onclick="ExportCsvAsync" disabled="@_exporting">
+                        @if (_exporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Export CSV
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Expiring Authorizations</div>
+        <div class="card-body p-0">
+            @if (_loadingExpiring)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_expiring.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">
+                    No approved authorizations expiring within @_expiringDays days.
+                </p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Request</th>
+                            <th>Patient</th>
+                            <th>Auth #</th>
+                            <th class="text-end">Expires</th>
+                            <th class="text-end">Days Left</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _expiring)
+                        {
+                            <tr>
+                                <td><a href="/requests/@row.RequestId">@row.RequestNumber</a></td>
+                                <td>@row.PatientName</td>
+                                <td><code>@(row.AuthorizationNumber ?? "—")</code></td>
+                                <td class="text-end">@row.AuthorizationEndDate.ToString("yyyy-MM-dd")</td>
+                                <td class="text-end">
+                                    @if (row.DaysUntilExpiry <= 7)
+                                    {
+                                        <span class="badge bg-danger">@row.DaysUntilExpiry</span>
+                                    }
+                                    else if (row.DaysUntilExpiry <= 14)
+                                    {
+                                        <span class="badge bg-warning text-dark">@row.DaysUntilExpiry</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@row.DaysUntilExpiry</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@* ── Turnaround Time tab (§12.2 report 5) ────────────────────────────────── *@
+@if (_activeTab == "turnaround")
+{
+    <div class="card mb-3">
+        <div class="card-body d-flex align-items-end gap-3 flex-wrap">
+            <div>
+                <label class="form-label form-label-sm">From</label>
+                <input type="date" class="form-control form-control-sm"
+                       @bind="_turnaroundFrom" />
+            </div>
+            <div>
+                <label class="form-label form-label-sm">To</label>
+                <input type="date" class="form-control form-control-sm"
+                       @bind="_turnaroundTo" />
+            </div>
+            <button class="btn btn-primary btn-sm" @onclick="LoadTurnaroundAsync">Apply</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Average Turnaround Time (Submitted → Decision)</div>
+        <div class="card-body p-0">
+            @if (_loadingTurnaround)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_turnaround.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">No decided requests found in the selected date range.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Priority</th>
+                            <th class="text-end">Requests</th>
+                            <th class="text-end">Avg Days</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _turnaround)
+                        {
+                            <tr>
+                                <td>@row.Priority</td>
+                                <td class="text-end">@row.Count</td>
+                                <td class="text-end">@row.AverageDays</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@* ── Provider Submission Volume tab (§12.2 report 6) ─────────────────────── *@
+@if (_activeTab == "providervolume")
+{
+    <div class="card mb-3">
+        <div class="card-body d-flex align-items-end gap-3 flex-wrap">
+            <div>
+                <label class="form-label form-label-sm">From</label>
+                <input type="date" class="form-control form-control-sm"
+                       @bind="_providerVolumeFrom" />
+            </div>
+            <div>
+                <label class="form-label form-label-sm">To</label>
+                <input type="date" class="form-control form-control-sm"
+                       @bind="_providerVolumeTo" />
+            </div>
+            <button class="btn btn-primary btn-sm" @onclick="LoadProviderVolumeAsync">Apply</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Provider Submission Volume</div>
+        <div class="card-body p-0">
+            @if (_loadingProviderVolume)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_providerVolume.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">No submissions found in the selected date range.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Provider</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Approved</th>
+                            <th class="text-end">Denied</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _providerVolume)
+                        {
+                            <tr>
+                                <td>@row.ProviderDisplayName</td>
+                                <td class="text-end">@row.SubmissionCount</td>
+                                <td class="text-end text-success">@row.ApprovedCount</td>
+                                <td class="text-end text-danger">@row.DeniedCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@* ── Approval Rate tab (§12.2 report 3) ──────────────────────────────────── *@
+@if (_activeTab == "approvalrate")
+{
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-3 flex-wrap">
+            <span>Approval Rate by Priority</span>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <label class="form-label mb-0 small">From</label>
+                <input type="date" class="form-control form-control-sm" style="width:auto"
+                       @bind="_approvalRateFrom" />
+                <label class="form-label mb-0 small">To</label>
+                <input type="date" class="form-control form-control-sm" style="width:auto"
+                       @bind="_approvalRateTo" />
+                <button class="btn btn-primary btn-sm" @onclick="LoadApprovalRateAsync">Apply</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (_loadingApprovalRate)
+            {
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            }
+            else if (_approvalRate.Count == 0)
+            {
+                <p class="text-muted p-3 mb-0">No decided requests in the selected date range.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Priority</th>
+                            <th class="text-end">Approved</th>
+                            <th class="text-end">Denied</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Approval Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _approvalRate)
+                        {
+                            <tr>
+                                <td><PriorityBadge Priority="@(Enum.Parse<PaPriority>(row.Priority))" /></td>
+                                <td class="text-end text-success fw-semibold">@row.Approved</td>
+                                <td class="text-end text-danger">@row.Denied</td>
+                                <td class="text-end">@row.Total</td>
+                                <td class="text-end">
+                                    <span class="badge @(row.ApprovalRatePct >= 70 ? "bg-success" : row.ApprovalRatePct >= 50 ? "bg-warning text-dark" : "bg-danger")">
+                                        @row.ApprovalRatePct%
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                        <tr class="fw-semibold table-light">
+                            <td>Overall</td>
+                            <td class="text-end text-success">@_approvalRate.Sum(r => r.Approved)</td>
+                            <td class="text-end text-danger">@_approvalRate.Sum(r => r.Denied)</td>
+                            <td class="text-end">@_approvalRate.Sum(r => r.Total)</td>
+                            <td class="text-end">
+                                @{
+                                    var totalAll    = _approvalRate.Sum(r => r.Total);
+                                    var approvedAll = _approvalRate.Sum(r => r.Approved);
+                                    var overallPct  = totalAll > 0
+                                        ? Math.Round(approvedAll * 100.0 / totalAll, 1) : 0;
+                                }
+                                <span class="badge @(overallPct >= 70 ? "bg-success" : overallPct >= 50 ? "bg-warning text-dark" : "bg-danger")">
+                                    @overallPct%
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    // ── Tab state ─────────────────────────────────────────────────────────────
+    private string _activeTab = "status";
+
+    // ── Status summary ────────────────────────────────────────────────────────
+    private bool _loadingStatus;
+    private IReadOnlyList<RequestStatusSummary> _statusSummary = [];
+
+    // ── Denial analysis ───────────────────────────────────────────────────────
+    private bool _loadingDenials;
+    private IReadOnlyList<DenialReasonSummary> _denials = [];
+    private DateTime _denialFrom = DateTime.UtcNow.AddMonths(-3);
+    private DateTime _denialTo   = DateTime.UtcNow;
+
+    // ── Monthly volume ────────────────────────────────────────────────────────
+    private bool _loadingVolume;
+    private IReadOnlyList<MonthlyVolume> _volume = [];
+    private int _volumeMonths = 12;
+
+    // ── Expiring ──────────────────────────────────────────────────────────────
+    private bool _loadingExpiring;
+    private IReadOnlyList<ExpiringAuthorization> _expiring = [];
+    private int _expiringDays = 30;
+    private bool _exporting;
+
+    // ── Turnaround Time ───────────────────────────────────────────────────────
+    private bool _loadingTurnaround;
+    private IReadOnlyList<TurnaroundSummary> _turnaround = [];
+    private DateTime _turnaroundFrom = DateTime.UtcNow.AddMonths(-3);
+    private DateTime _turnaroundTo   = DateTime.UtcNow;
+
+    // ── Provider Volume ───────────────────────────────────────────────────────
+    private bool _loadingProviderVolume;
+    private IReadOnlyList<ProviderVolumeSummary> _providerVolume = [];
+    private DateTime _providerVolumeFrom = DateTime.UtcNow.AddMonths(-3);
+    private DateTime _providerVolumeTo   = DateTime.UtcNow;
+
+    // ── Approval Rate ──────────────────────────────────────────────────────────
+    private bool _loadingApprovalRate;
+    private IReadOnlyList<ApprovalRateSummary> _approvalRate = [];
+    private DateTime _approvalRateFrom = DateTime.UtcNow.AddMonths(-3);
+    private DateTime _approvalRateTo   = DateTime.UtcNow;
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+        => await LoadStatusAsync();
+
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    private async Task SetTab(string tab)
+    {
+        _activeTab = tab;
+        switch (tab)
+        {
+            case "status":        await LoadStatusAsync();        break;
+            case "denials":       await LoadDenialsAsync();       break;
+            case "volume":        await LoadVolumeAsync();        break;
+            case "expiring":      await LoadExpiringAsync();      break;
+            case "turnaround":    await LoadTurnaroundAsync();    break;
+            case "providervolume":await LoadProviderVolumeAsync();break;
+            case "approvalrate":  await LoadApprovalRateAsync();   break;
+        }
+    }
+
+    // ── Data loaders ──────────────────────────────────────────────────────────
+    private async Task LoadStatusAsync()
+    {
+        _loadingStatus = true;
+        try   { _statusSummary = await ReportingSvc.GetStatusSummaryAsync(); }
+        catch (Exception ex) { Logger.LogError(ex, "Status summary load failed."); }
+        finally { _loadingStatus = false; }
+    }
+
+    private async Task LoadDenialsAsync()
+    {
+        _loadingDenials = true;
+        try
+        {
+            _denials = await ReportingSvc.GetDenialsByReasonAsync(
+                DateOnly.FromDateTime(_denialFrom),
+                DateOnly.FromDateTime(_denialTo));
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Denial analysis load failed."); }
+        finally { _loadingDenials = false; }
+    }
+
+    private async Task LoadVolumeAsync()
+    {
+        _loadingVolume = true;
+        try   { _volume = await ReportingSvc.GetMonthlyVolumeAsync(_volumeMonths); }
+        catch (Exception ex) { Logger.LogError(ex, "Volume load failed."); }
+        finally { _loadingVolume = false; }
+    }
+
+    private async Task SetVolumeMonths(int months)
+    {
+        _volumeMonths = months;
+        await LoadVolumeAsync();
+    }
+
+    private async Task LoadExpiringAsync()
+    {
+        _loadingExpiring = true;
+        try   { _expiring = await ReportingSvc.GetExpiringAuthorizationsAsync(_expiringDays); }
+        catch (Exception ex) { Logger.LogError(ex, "Expiring auth load failed."); }
+        finally { _loadingExpiring = false; }
+    }
+
+    private async Task LoadTurnaroundAsync()
+    {
+        _loadingTurnaround = true;
+        try
+        {
+            _turnaround = await ReportingSvc.GetTurnaroundTimeAsync(
+                DateOnly.FromDateTime(_turnaroundFrom),
+                DateOnly.FromDateTime(_turnaroundTo));
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Turnaround time load failed."); }
+        finally { _loadingTurnaround = false; }
+    }
+
+    private async Task LoadProviderVolumeAsync()
+    {
+        _loadingProviderVolume = true;
+        try
+        {
+            _providerVolume = await ReportingSvc.GetProviderVolumeAsync(
+                DateOnly.FromDateTime(_providerVolumeFrom),
+                DateOnly.FromDateTime(_providerVolumeTo));
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Provider volume load failed."); }
+        finally { _loadingProviderVolume = false; }
+    }
+
+    private async Task LoadApprovalRateAsync()
+    {
+        _loadingApprovalRate = true;
+        try
+        {
+            _approvalRate = await ReportingSvc.GetApprovalRateAsync(
+                DateOnly.FromDateTime(_approvalRateFrom),
+                DateOnly.FromDateTime(_approvalRateTo));
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Approval rate load failed."); }
+        finally { _loadingApprovalRate = false; }
+    }
+
+    // ── CSV Export (FR-010) ───────────────────────────────────────────────────
+    private async Task ExportCsvAsync()
+    {
+        _exporting = true;
+        try
+        {
+            var filter = new PaRequestFilter { PageSize = int.MaxValue, Page = 1 };
+            var (data, fileName) = await CsvExport.ExportRequestsAsync(filter);
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, "text/csv", data);
+            Toast.ShowSuccess($"Export downloaded: {fileName}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "CSV export failed.");
+            Toast.ShowError("Export failed. Please try again.");
+        }
+        finally
+        {
+            _exporting = false;
+        }
+    }
+}

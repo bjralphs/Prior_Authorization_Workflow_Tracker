@@ -1,0 +1,56 @@
+@* ConfirmationModal — Bootstrap 5 modal with confirm/cancel events (§16.2)
+   Usage:
+     <ConfirmationModal @ref="_modal" Title="Delete Draft" Message="Are you sure?"
+                        OnConfirm="DoDelete" />
+     <button @onclick="_modal.ShowAsync">Delete</button>
+*@
+
+<div class="modal fade @(_visible ? "show d-block" : "")"
+     tabindex="-1" role="dialog" aria-modal="true"
+     style="background-color: rgba(0,0,0,.5);"
+     @onclick="HandleBackdropClick">
+    <div class="modal-dialog modal-dialog-centered" role="document" @onclick:stopPropagation>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <button type="button" class="btn-close" @onclick="Cancel" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>@Message</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="Cancel">@CancelLabel</button>
+                <button class="btn @ConfirmButtonClass" @onclick="Confirm">@ConfirmLabel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title          { get; set; } = "Confirm";
+    [Parameter] public string Message        { get; set; } = "Are you sure?";
+    [Parameter] public string ConfirmLabel   { get; set; } = "Confirm";
+    [Parameter] public string CancelLabel    { get; set; } = "Cancel";
+    [Parameter] public string ConfirmButtonClass { get; set; } = "btn-danger";
+    [Parameter] public EventCallback OnConfirm   { get; set; }
+    [Parameter] public EventCallback OnCancel    { get; set; }
+
+    private bool _visible;
+
+    public void Show() => _visible = true;
+    public async Task ShowAsync() { _visible = true; await InvokeAsync(StateHasChanged); }
+
+    private async Task Confirm()
+    {
+        _visible = false;
+        await OnConfirm.InvokeAsync();
+    }
+
+    private async Task Cancel()
+    {
+        _visible = false;
+        await OnCancel.InvokeAsync();
+    }
+
+    private void HandleBackdropClick() => _visible = false;
+}

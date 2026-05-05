@@ -1,0 +1,335 @@
+@page "/requests/{Id:int}/edit"
+@attribute [Authorize(Roles = "Authorization Specialist,Administrator")]
+@inject IPaRequestService PaRequestSvc
+@inject IWorkflowService WorkflowSvc
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject ILogger<EditRequest> Logger
+@using Prior_Authorization_Workflow_Tracker.Data
+@using Prior_Authorization_Workflow_Tracker.Exceptions
+@using Prior_Authorization_Workflow_Tracker.Services.Models
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Edit Request — PA Tracker</PageTitle>
+
+@if (_notFound)
+{
+    <div class="alert alert-warning mt-4">
+        <strong>Not found.</strong> This request does not exist or you don't have access to edit it.
+        <a href="/requests" class="alert-link ms-2">Back to Queue</a>
+    </div>
+}
+else if (_request is null)
+{
+    <div class="text-center py-5"><div class="spinner-border"></div></div>
+}
+else
+{
+    <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", "/requests"), (_request.RequestNumber, $"/requests/{Id}"), ("Edit", (string?)null) })" />
+
+    <div class="d-flex align-items-center mb-4 gap-2">
+        <h4 class="mb-0">Edit — @_request.RequestNumber</h4>
+        <StatusBadge Status="_request.Status" />
+    </div>
+
+    @if (_errorMessage is not null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <EditForm Model="_model" OnValidSubmit="HandleUpdate">
+                        <DataAnnotationsValidator />
+
+                        <h6 class="text-muted mb-3">Patient Information</h6>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">Patient MRN <span class="text-danger">*</span></label>
+                                <InputText class="form-control" @bind-Value="_model.PatientMrn" />
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Patient Name</label>
+                                <InputText class="form-control" @bind-Value="_model.PatientName" />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control"
+                                       value="@_dobStr"
+                                       @onchange="e => ParseDob(e.Value?.ToString())" />
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Diagnosis Code (ICD-10)</label>
+                                <InputText class="form-control" @bind-Value="_model.DiagnosisCode" />
+                            </div>
+                        </div>
+
+                        <hr />
+                        <h6 class="text-muted mb-3">Clinical Information</h6>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">Insurance Plan <span class="text-danger">*</span></label>
+                                <InputSelect class="form-select" @bind-Value="_model.InsurancePlanID">
+                                    <option value="0">— Select plan —</option>
+                                    @foreach (var plan in _insurancePlans)
+                                    {
+                                        <option value="@plan.ID">@plan.PlanName</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Procedure Code <span class="text-danger">*</span></label>
+                                <InputSelect class="form-select" @bind-Value="_model.ProcedureCodeID">
+                                    <option value="0">— Select procedure —</option>
+                                    @foreach (var code in _procedureCodes)
+                                    {
+                                        <option value="@(code.ID)">@(code.Code) — @(code.Description)</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">Treating Provider ID</label>
+                                <InputText class="form-control" @bind-Value="_model.ProviderID" />
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Units Requested</label>
+                                <InputNumber class="form-control" @bind-Value="_model.ApprovedUnitsRequested" min="1" max="999" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Priority</label>
+                            <InputSelect class="form-select" @bind-Value="_model.Priority">
+                                @foreach (var p in Enum.GetValues<PaPriority>())
+                                {
+                                    <option value="@p">@p</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Clinical Justification
+                                <span class="text-muted small">(minimum 50 characters for submission)</span>
+                            </label>
+                            <InputTextArea class="form-control" rows="5" @bind-Value="_model.ClinicalJustification" />
+                            <div class="text-muted small mt-1">@(_model.ClinicalJustification?.Length ?? 0) characters</div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-primary" disabled="@_saving">
+                                @if (_saving && !_resubmitting && !_deleting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Save Changes
+                            </button>
+
+                            @if (_request.Status == PaStatus.PendingInfo)
+                            {
+                                <button type="button" class="btn btn-success" @onclick="HandleResubmitAsync" disabled="@_saving">
+                                    @if (_resubmitting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                    Save &amp; Resubmit
+                                </button>
+                            }
+
+                            @if (_request.Status == PaStatus.Draft)
+                            {
+                                <button type="button" class="btn btn-outline-danger ms-auto"
+                                        @onclick="HandleDeleteAsync" disabled="@_saving">
+                                    @if (_deleting) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                    Delete Draft
+                                </button>
+                            }
+
+                            <a href="/requests/@Id" class="btn btn-link @(_request.Status != PaStatus.Draft ? "ms-auto" : "")">
+                                Cancel
+                            </a>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-warning">
+                <div class="card-header bg-warning">Note</div>
+                <div class="card-body small">
+                    @if (_request.Status == PaStatus.Draft)
+                    {
+                        <p>You are editing a <strong>Draft</strong> request. Save changes or delete the draft.</p>
+                    }
+                    else if (_request.Status == PaStatus.PendingInfo)
+                    {
+                        <p>This request requires additional information. Update the relevant fields and click <strong>Save &amp; Resubmit</strong> to send it back for review.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ConfirmationModal @ref="_deleteModal"
+                       Title="Delete Draft"
+                       Message="Are you sure you want to permanently delete this draft? This action cannot be undone."
+                       ConfirmLabel="Delete"
+                       ConfirmClass="btn-danger"
+                       OnConfirm="ConfirmDeleteAsync" />
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private PaRequest? _request;
+    private bool _notFound;
+    private bool _saving;
+    private bool _resubmitting;
+    private bool _deleting;
+    private string? _errorMessage;
+
+    private readonly CreatePaRequestModel _model = new();
+    private string _dobStr = string.Empty;
+
+    private List<InsurancePlan> _insurancePlans = [];
+    private List<ProcedureCode> _procedureCodes = [];
+
+    private ConfirmationModal? _deleteModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _request = await PaRequestSvc.GetByIdAsync(Id);
+        if (_request is null || (_request.Status != PaStatus.Draft && _request.Status != PaStatus.PendingInfo))
+        {
+            _notFound = true;
+            return;
+        }
+
+        // Populate form from existing request
+        _model.PatientMrn             = _request.PatientMrn;
+        _model.PatientName            = _request.PatientName ?? string.Empty;
+        _model.PatientDob             = _request.PatientDob;
+        _dobStr                       = _request.PatientDob.ToString("yyyy-MM-dd");
+        _model.DiagnosisCode          = _request.DiagnosisCode ?? string.Empty;
+        _model.InsurancePlanID        = _request.InsurancePlanID;
+        _model.ProcedureCodeID        = _request.ProcedureCodeID;
+        _model.ProviderID             = _request.ProviderID ?? string.Empty;
+        _model.ApprovedUnitsRequested = _request.ApprovedUnitsRequested;
+        _model.Priority               = _request.Priority;
+        _model.ClinicalJustification  = _request.ClinicalJustification ?? string.Empty;
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _insurancePlans = await db.InsurancePlans
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.PlanName)
+            .AsNoTracking()
+            .ToListAsync();
+        _procedureCodes = await db.ProcedureCodes
+            .Where(p => p.RequiresPriorAuth && p.IsActive)
+            .OrderBy(p => p.Code)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    private void ParseDob(string? value)
+    {
+        _dobStr = value ?? string.Empty;
+        if (DateTime.TryParse(value, out var dt))
+            _model.PatientDob = dt;
+    }
+
+    private async Task HandleUpdate()
+    {
+        _saving = true;
+        _errorMessage = null;
+        try
+        {
+            await PaRequestSvc.UpdateDraftAsync(Id, _model);
+            Toast.ShowSuccess("Changes saved.");
+            Nav.NavigateTo($"/requests/{Id}");
+        }
+        catch (BusinessRuleViolationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Update failed for request {Id}", Id);
+            _errorMessage = "Save failed. Please try again.";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task HandleResubmitAsync()
+    {
+        _saving = true;
+        _resubmitting = true;
+        _errorMessage = null;
+        try
+        {
+            await PaRequestSvc.UpdateDraftAsync(Id, _model);
+            var updated = await WorkflowSvc.ResubmitAsync(Id);
+            Toast.ShowSuccess($"Request {updated.RequestNumber} resubmitted.");
+            Nav.NavigateTo($"/requests/{Id}");
+        }
+        catch (BusinessRuleViolationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (WorkflowTransitionException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Resubmit failed for request {Id}", Id);
+            _errorMessage = "Resubmit failed. Please try again.";
+        }
+        finally
+        {
+            _saving = false;
+            _resubmitting = false;
+        }
+    }
+
+    private async Task HandleDeleteAsync()
+    {
+        if (_deleteModal is not null)
+            await _deleteModal.ShowAsync();
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        _saving = true;
+        _deleting = true;
+        _errorMessage = null;
+        try
+        {
+            await PaRequestSvc.DeleteDraftAsync(Id);
+            Toast.ShowSuccess("Draft deleted.");
+            Nav.NavigateTo("/requests");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Delete failed for request {Id}", Id);
+            _errorMessage = "Delete failed. Please try again.";
+        }
+        finally
+        {
+            _saving = false;
+            _deleting = false;
+        }
+    }
+}

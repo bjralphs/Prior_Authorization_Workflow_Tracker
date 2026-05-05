@@ -1,0 +1,912 @@
+@page "/requests/{Id:int}"
+@attribute [Authorize]
+@inject IPaRequestService PaRequestSvc
+@inject IWorkflowService WorkflowSvc
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICurrentUserService CurrentUser
+@inject IDateTimeProvider Clock
+@inject NavigationManager Nav
+@inject ToastService Toast
+@inject ILogger<RequestDetail> Logger
+@using Prior_Authorization_Workflow_Tracker.Data
+@using Prior_Authorization_Workflow_Tracker.Exceptions
+@using Prior_Authorization_Workflow_Tracker.Services.Models
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>@(_request?.RequestNumber ?? "Request Detail") — PA Tracker</PageTitle>
+
+@if (_notFound)
+{
+    <div class="alert alert-warning mt-4">
+        <strong>Not found.</strong> This request does not exist or you don't have access to view it.
+        <a href="/requests" class="alert-link ms-2">Back to Queue</a>
+    </div>
+}
+else if (_request is null)
+{
+    <div class="text-center py-5"><div class="spinner-border"></div></div>
+}
+else
+{
+    <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", "/requests"), (_request.RequestNumber, (string?)null) })" />
+
+    <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+        <h4 class="mb-0">@_request.RequestNumber</h4>
+        <StatusBadge Status="_request.Status" />
+        <PriorityBadge Priority="_request.Priority" />
+        @if (_request.Status == PaStatus.Appealed)
+        {
+            <span class="badge badge-appealed text-white">APPEAL</span>
+        }
+        <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")">
+            <Authorized>
+                @if (_request.Status == PaStatus.Draft || _request.Status == PaStatus.PendingInfo)
+                {
+                    <a href="/requests/@Id/edit" class="btn btn-sm btn-outline-secondary ms-auto">Edit</a>
+                }
+                @if (_request.Status == PaStatus.Draft)
+                {
+                    <button class="btn btn-sm btn-outline-danger" @onclick="HandleDeleteDraftAsync">Delete Draft</button>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    @if (_errorMessage is not null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            @_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null" aria-label="Dismiss error"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        @* ── Left column: details + actions ───────────────────────────────── *@
+        <div class="col-lg-8">
+
+            @* Patient & clinical details ──────────────────────────────────── *@
+            <div class="card mb-4">
+                <div class="card-header">Request Details</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Patient MRN</dt>
+                        <dd class="col-sm-8">@_request.PatientMrn</dd>
+
+                        <dt class="col-sm-4">Patient Name</dt>
+                        <dd class="col-sm-8">@(_request.PatientName ?? "—")</dd>
+
+                        <dt class="col-sm-4">Date of Birth</dt>
+                        <dd class="col-sm-8">@_request.PatientDob.ToString("yyyy-MM-dd")</dd>
+
+                        <dt class="col-sm-4">Diagnosis Code</dt>
+                        <dd class="col-sm-8"><code>@(_request.DiagnosisCode ?? "—")</code></dd>
+
+                        <dt class="col-sm-4">Insurance Plan</dt>
+                        <dd class="col-sm-8">@(_request.InsurancePlan?.PlanName ?? "—")</dd>
+
+                        <dt class="col-sm-4">Procedure Code</dt>
+                        <dd class="col-sm-8">
+                            @if (_request.ProcedureCode is not null)
+                            {
+                                <code>@_request.ProcedureCode.Code</code>
+                                <text> — @_request.ProcedureCode.Description</text>
+                            }
+                            else { <span>—</span> }
+                        </dd>
+
+                        <dt class="col-sm-4">Treating Provider</dt>
+                        <dd class="col-sm-8">@(_request.ProviderID is null ? "—" : _userNames.GetValueOrDefault(_request.ProviderID, _request.ProviderID))</dd>
+
+                        <dt class="col-sm-4">Units Requested</dt>
+                        <dd class="col-sm-8">@_request.ApprovedUnitsRequested</dd>
+
+                        <dt class="col-sm-4">Submitted At</dt>
+                        <dd class="col-sm-8">@(_request.SubmittedAt?.ToString("g") ?? "—")</dd>
+
+                        <dt class="col-sm-4">Decision Due</dt>
+                        <dd class="col-sm-8">
+                            @if (_request.DecisionDueDate.HasValue)
+                            {
+                                var due = _request.DecisionDueDate.Value;
+                                <span class="@(due < Clock.UtcNow ? "text-danger fw-semibold" : "")">
+                                    @due.ToString("g")
+                                </span>
+                            }
+                            else { <span>—</span> }
+                        </dd>
+
+                        @if (_request.Status == PaStatus.Approved)
+                        {
+                            <dt class="col-sm-4">Auth Number</dt>
+                            <dd class="col-sm-8"><code>@(_request.AuthorizationNumber ?? "—")</code></dd>
+
+                            <dt class="col-sm-4">Auth Period</dt>
+                            <dd class="col-sm-8">
+                                @(_request.AuthorizationStartDate?.ToString("yyyy-MM-dd") ?? "—")
+                                → @(_request.AuthorizationEndDate?.ToString("yyyy-MM-dd") ?? "—")
+                            </dd>
+
+                            <dt class="col-sm-4">Units Granted</dt>
+                            <dd class="col-sm-8">@_request.ApprovedUnitsGranted</dd>
+                        }
+
+                        @if (_request.Status == PaStatus.Denied && _request.DenialReason is not null)
+                        {
+                            <dt class="col-sm-4">Denial Reason</dt>
+                            <dd class="col-sm-8">
+                                <code>@_request.DenialReason.Code</code> — @_request.DenialReason.Description
+                            </dd>
+                            @if (_request.DenialReason.IsAppealable && _request.DecisionRenderedAt.HasValue)
+                            {
+                                var appealDeadline = _request.DecisionRenderedAt.Value.AddDays(_request.DenialReason.AppealDeadlineDays);
+                                <dt class="col-sm-4">Appeal Deadline</dt>
+                                <dd class="col-sm-8">
+                                    @appealDeadline.ToString("yyyy-MM-dd")
+                                    @if (Clock.UtcNow > appealDeadline)
+                                    {
+                                        <span class="badge bg-secondary ms-1">Closed</span>
+                                    }
+                                </dd>
+                            }
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(_request.DenialNotes))
+                        {
+                            <dt class="col-sm-4">Notes</dt>
+                            <dd class="col-sm-8">@_request.DenialNotes</dd>
+                        }
+
+                        <dt class="col-sm-4">Clinical Justification</dt>
+                        <dd class="col-sm-8" style="white-space: pre-wrap;">@(_request.ClinicalJustification ?? "—")</dd>
+                    </dl>
+                </div>
+            </div>
+
+            @* Workflow action buttons ──────────────────────────────────────── *@
+            <div class="card mb-4">
+                <div class="card-header">Actions</div>
+                <div class="card-body d-flex flex-wrap gap-2">
+                    @* Begin Review / Request Info (Submitted or Appealed) *@
+                    @if (_request.Status == PaStatus.Submitted || _request.Status == PaStatus.Appealed)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Reviewer},{Roles.Admin}")">
+                            <Authorized>
+                                <button class="btn btn-sm btn-outline-primary" disabled="@_actionInProgress"
+                                        @onclick="BeginReviewAsync">Begin Review</button>
+                                <button class="btn btn-sm btn-outline-warning" disabled="@_actionInProgress"
+                                        @onclick="() => _showPendingInfoForm = true">Request Info</button>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+
+                    @* Approve / Deny / Request Info (UnderReview or Appealed) *@
+                    @if (_request.Status == PaStatus.UnderReview || _request.Status == PaStatus.Appealed)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Reviewer},{Roles.Admin}")">
+                            <Authorized>
+                                <button class="btn btn-sm btn-success" disabled="@_actionInProgress"
+                                        @onclick="() => _showApproveForm = true">Approve</button>
+                                <button class="btn btn-sm btn-danger" disabled="@_actionInProgress"
+                                        @onclick="() => _showDenyForm = true">Deny</button>
+                                <button class="btn btn-sm btn-outline-warning" disabled="@_actionInProgress"
+                                        @onclick="() => _showPendingInfoForm = true">Request Info</button>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+
+                    @* Resubmit (PendingInfo) *@
+                    @if (_request.Status == PaStatus.PendingInfo)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")">
+                            <Authorized>
+                                <button class="btn btn-sm btn-primary" disabled="@_actionInProgress"
+                                        @onclick="ResubmitAsync">Resubmit</button>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+
+                    @* File Appeal / Appeal window closed (Denied) *@
+                    @if (_request.Status == PaStatus.Denied)
+                    {
+                        var _denialDecision = _request.DecisionRenderedAt;
+                        var _deadlineDays   = _request.DenialReason?.AppealDeadlineDays ?? 0;
+                        var _isAppealable   = _request.DenialReason?.IsAppealable == true;
+                        var _withinDeadline = _denialDecision.HasValue
+                            && Clock.UtcNow <= _denialDecision.Value.AddDays(_deadlineDays);
+                        <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")">
+                            <Authorized>
+                                @if (_isAppealable && _withinDeadline)
+                                {
+                                    <button class="btn btn-sm btn-outline-warning" disabled="@_actionInProgress"
+                                            @onclick="AppealAsync">File Appeal</button>
+                                }
+                                else
+                                {
+                                    @* PRD §8.7: show disabled button so user understands why appeal is unavailable *@
+                                    <button class="btn btn-sm btn-outline-secondary" disabled
+                                            title="The appeal window has closed for this denial reason, or the denial reason does not allow appeals.">Appeal window closed</button>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+
+                    @* Withdraw (PRD §8.4: Submitted, PendingInfo, UnderReview, Appealed) *@
+                    @if (_request.Status is PaStatus.Submitted or PaStatus.PendingInfo
+                                        or PaStatus.UnderReview or PaStatus.Appealed)
+                    {
+                        <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Provider},{Roles.Admin}")">
+                            <Authorized>
+                                <button class="btn btn-sm btn-outline-danger" disabled="@_actionInProgress"
+                                        @onclick="() => _showWithdrawForm = true">Withdraw</button>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+
+                    @* Admin Override — always shown for Admin regardless of status (T-C5) *@
+                    <AuthorizeView Roles="@Roles.Admin">
+                        <Authorized>
+                            <button class="btn btn-sm btn-outline-dark" disabled="@_actionInProgress"
+                                    @onclick="() => { _overrideTargetStatus = _request.Status; _showOverrideForm = true; }">Override Status</button>
+                        </Authorized>
+                    </AuthorizeView>
+
+                    @* No actions message *@
+                    @if (!_showApproveForm && !_showDenyForm && !_showWithdrawForm
+                        && !_showPendingInfoForm && !_showOverrideForm
+                        && !IsActionableStatus(_request.Status) && !CurrentUser.IsInRole(Roles.Admin))
+                    {
+                        <span class="text-muted small">No actions available for the current status.</span>
+                    }
+                </div>
+            </div>
+
+            @* Approval inline form ────────────────────────────────────────── *@
+            @if (_showApproveForm)
+            {
+                <div class="card mb-4 border-success">
+                    <div class="card-header bg-success text-white">Approve Request</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-sm-4">
+                                <label class="form-label">Units Granted <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" @bind="_approvalModel.ApprovedUnitsGranted" min="1" />
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label">Auth Start Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control"
+                                       value="@_approvalStartStr"
+                                       @onchange="e => ParseApprovalStart(e.Value?.ToString())" />
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label">Auth End Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control"
+                                       value="@_approvalEndStr"
+                                       @onchange="e => ParseApprovalEnd(e.Value?.ToString())" />
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-success" @onclick="ConfirmApproveAsync" disabled="@_actionInProgress">
+                                @if (_actionInProgress) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Confirm Approval
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="() => _showApproveForm = false">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* Deny inline form ───────────────────────────────────────────── *@
+            @if (_showDenyForm)
+            {
+                <div class="card mb-4 border-danger">
+                    <div class="card-header bg-danger text-white">Deny Request</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Denial Reason <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="_denyReasonId">
+                                <option value="0">— Select reason —</option>
+                                @foreach (var r in _denialReasons)
+                                {
+                                    <option value="@r.ID">@r.Code — @r.Description</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes (optional)</label>
+                            <textarea class="form-control" rows="3" @bind="_denyNotes"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-danger" @onclick="ConfirmDenyAsync" disabled="@_actionInProgress">
+                                @if (_actionInProgress) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Confirm Denial
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="() => _showDenyForm = false">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* Withdraw inline form ───────────────────────────────────────── *@
+            @if (_showWithdrawForm)
+            {
+                <div class="card mb-4 border-warning">
+                    <div class="card-header bg-warning">Withdraw Request</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" rows="2" @bind="_withdrawReason"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning" @onclick="ConfirmWithdrawAsync" disabled="@_actionInProgress">
+                                @if (_actionInProgress) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Confirm Withdrawal
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="() => _showWithdrawForm = false">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* Pending Info inline form ────────────────────────────────────── *@
+            @if (_showPendingInfoForm)
+            {
+                <div class="card mb-4 border-warning">
+                    <div class="card-header bg-warning">Request Additional Information</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" rows="2" @bind="_pendingInfoReason"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning" @onclick="ConfirmPendingInfoAsync" disabled="@_actionInProgress">
+                                @if (_actionInProgress) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Send Request
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="() => _showPendingInfoForm = false">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* Admin Override inline form (T-C5) ──────────────────────────── *@
+            @if (_showOverrideForm)
+            {
+                <div class="card mb-4 border-dark">
+                    <div class="card-header bg-dark text-white">
+                        <span class="bi bi-shield-exclamation me-1"></span>
+                        Administrative Workflow Override
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning py-2 small">
+                            This bypasses normal workflow rules. Use only when a request is stuck or
+                            requires emergency correction. All overrides are permanently logged.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Target Status <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="_overrideTargetStatus">
+                                @foreach (var s in Enum.GetValues<PaStatus>())
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Justification <span class="text-danger">*</span></label>
+                            <textarea class="form-control" rows="3" @bind="_overrideJustification"
+                                      placeholder="Required: explain why this administrative override is necessary...">
+                            </textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-dark" @onclick="ConfirmOverrideAsync"
+                                    disabled="@_actionInProgress">
+                                @if (_actionInProgress) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                Apply Override
+                            </button>
+                            <button class="btn btn-outline-secondary"
+                                    @onclick="() => _showOverrideForm = false">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* Comments ────────────────────────────────────────────────────── *@
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span>Comments</span>
+                </div>
+                <div class="card-body">
+                    @if (_comments.Count == 0)
+                    {
+                        <p class="text-muted small mb-3">No comments yet.</p>
+                    }
+                    else
+                    {
+                        @foreach (var c in _comments)
+                        {
+                            <div class="border rounded p-2 mb-2 @(c.IsInternalOnly ? "bg-light border-warning" : "")">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>@_userNames.GetValueOrDefault(c.AuthoredByUserID, c.AuthoredByUserID) @(c.IsInternalOnly ? "(Internal)" : "")</span>
+                                    <span>@c.AuthoredAt.ToString("g")</span>
+                                </div>
+                                <div>@c.CommentText</div>
+                            </div>
+                        }
+                    }
+
+                    @* Add comment form *@
+                    <div class="mt-3">
+                        <textarea class="form-control mb-2" rows="2" @bind="_commentText"
+                                  placeholder="Add a comment..."></textarea>
+                        <div class="d-flex align-items-center gap-3">
+                            <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Reviewer},{Roles.Admin}")">
+                                <Authorized>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="chkInternal"
+                                               @bind="_commentInternal" />
+                                        <label class="form-check-label small" for="chkInternal">Internal only</label>
+                                    </div>
+                                </Authorized>
+                            </AuthorizeView>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddCommentAsync"
+                                    disabled="@(string.IsNullOrWhiteSpace(_commentText) || _actionInProgress)">
+                                Post Comment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Documents (T-C4) ────────────────────────────────────────────── *@
+            <div class="card mt-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span>Documents</span>
+                    <span class="badge bg-secondary">@_documents.Count</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (_documents.Count == 0)
+                    {
+                        <p class="text-muted small p-3 mb-0">No documents attached.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var doc in _documents)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold small">@doc.FileName</div>
+                                        <div class="text-muted small">
+                                            @doc.DocumentType &mdash;
+                                            @(doc.FileSizeBytes > 0
+                                                ? $"{doc.FileSizeBytes / 1024.0:F1} KB"
+                                                : "size unknown")
+                                        </div>
+                                        <div class="text-muted small">
+                                            @_userNames.GetValueOrDefault(doc.UploadedByUserID, doc.UploadedByUserID)
+                                            · @doc.UploadedAt.ToString("g")
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-light text-dark border">@doc.ContentType</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    @* Upload form — all authorized roles (§10.1 Upload documents) *@
+                    <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Provider},{Roles.Reviewer},{Roles.Admin}")">
+                        <Authorized>
+                            @if (_showUploadForm)
+                            {
+                                <div class="p-3 border-top">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">File Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control form-control-sm"
+                                                   @bind="_uploadFileName" placeholder="e.g. ClinicalNote_2026.pdf" />
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label class="form-label small mb-1">Document Type <span class="text-danger">*</span></label>
+                                            <select class="form-select form-select-sm" @bind="_uploadDocType">
+                                                <option value="">— Select —</option>
+                                                <option value="ClinicalNote">Clinical Note</option>
+                                                <option value="LabResult">Lab Result</option>
+                                                <option value="ImageReport">Imaging Report</option>
+                                                <option value="ReferralLetter">Referral Letter</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label class="form-label small mb-1">Content Type</label>
+                                            <input type="text" class="form-control form-control-sm"
+                                                   @bind="_uploadContentType" placeholder="application/pdf" />
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button class="btn btn-sm btn-primary" @onclick="ConfirmUploadAsync"
+                                                disabled="@_actionInProgress">
+                                            @if (_actionInProgress) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                            Attach Document
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                @onclick="() => _showUploadForm = false">Cancel</button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-2 border-top">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            @onclick="() => _showUploadForm = true">
+                                        + Attach Document
+                                    </button>
+                                </div>
+                            }
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+        </div>
+
+        @* ── Right column: status timeline ─────────────────────────────────── *@
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">Status History</div>
+                <div class="card-body p-0">
+                    @if (_statusHistory.Count == 0)
+                    {
+                        <p class="text-muted small p-3 mb-0">No history yet.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var h in _statusHistory)
+                            {
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <StatusBadge Status="h.ToStatus" />
+                                        <span class="text-muted small">@h.ChangedAt.ToString("g")</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(h.ChangeReason))
+                                    {
+                                        <div class="text-muted small mt-1">@h.ChangeReason</div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <ConfirmationModal @ref="_deleteModal"
+                       Title="Delete Draft"
+                       Message="Are you sure you want to permanently delete this draft? This action cannot be undone."
+                       ConfirmLabel="Delete"
+                       OnConfirm="ConfirmDeleteDraftAsync" />
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private PaRequest? _request;
+    private bool _notFound;
+
+    private IReadOnlyList<PaStatusHistory> _statusHistory = [];
+    private IReadOnlyList<PaComment> _comments = [];
+    private IReadOnlyList<PaDocument> _documents = [];
+    private List<DenialReason> _denialReasons = [];
+    private Dictionary<string, string> _userNames = [];
+
+    // Action forms
+    private bool _showApproveForm;
+    private bool _showDenyForm;
+    private bool _showWithdrawForm;
+    private bool _showPendingInfoForm;
+    private bool _actionInProgress;
+    private string? _errorMessage;
+
+    // Approve
+    private ApprovalDecisionModel _approvalModel = new();
+    private string _approvalStartStr = string.Empty;
+    private string _approvalEndStr = string.Empty;
+
+    // Deny
+    private int _denyReasonId;
+    private string? _denyNotes;
+
+    // Withdraw
+    private string _withdrawReason = string.Empty;
+
+    // Pending info
+    private string _pendingInfoReason = string.Empty;
+
+    // Admin override (T-C5)
+    private bool _showOverrideForm;
+    private PaStatus _overrideTargetStatus;
+    private string _overrideJustification = string.Empty;
+
+    // Comments
+    private string _commentText = string.Empty;
+    private bool _commentInternal;
+
+    // Documents (T-C4)
+    private bool _showUploadForm;
+    private string _uploadFileName   = string.Empty;
+    private string _uploadDocType    = string.Empty;
+    private string _uploadContentType = "application/pdf";
+
+    // Delete Draft (T-U3)
+    private ConfirmationModal? _deleteModal;
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+        => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _request = await PaRequestSvc.GetByIdAsync(Id);
+            if (_request is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            var histTask    = PaRequestSvc.GetStatusHistoryAsync(Id);
+            var commTask    = PaRequestSvc.GetCommentsAsync(Id);
+            var docsTask    = PaRequestSvc.GetDocumentsAsync(Id);
+            var reasonsTask = LoadDenialReasonsAsync();
+            await Task.WhenAll(histTask, commTask, docsTask, reasonsTask);
+            _statusHistory = await histTask;
+            _comments      = await commTask;
+            _documents     = await docsTask;
+            await LoadUserNamesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load request {Id}", Id);
+            _notFound = true;
+        }
+    }
+
+    private async Task LoadDenialReasonsAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _denialReasons = await db.DenialReasons
+            .OrderBy(r => r.Code)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Batch-loads display names for all user IDs referenced on this request and its comments
+    /// to avoid showing raw GUIDs in the UI (BUG-B, BUG-C).
+    /// </summary>
+    private async Task LoadUserNamesAsync()
+    {
+        if (_request is null) return;
+
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (_request.ProviderID        is not null) ids.Add(_request.ProviderID);
+        if (_request.SubmittedByUserID is not null) ids.Add(_request.SubmittedByUserID);
+        if (_request.ReviewerUserID    is not null) ids.Add(_request.ReviewerUserID);
+        foreach (var c in _comments)   ids.Add(c.AuthoredByUserID);
+        foreach (var d in _documents)  ids.Add(d.UploadedByUserID);
+
+        if (ids.Count == 0) return;
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _userNames = await db.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(
+                u => u.Id,
+                u => string.IsNullOrWhiteSpace(u.FullName) ? (u.Email ?? u.Id) : u.FullName);
+    }
+
+    // ── Action button helpers ─────────────────────────────────────────────────
+
+    private static bool IsActionableStatus(PaStatus s) =>
+        s is PaStatus.Submitted or PaStatus.UnderReview or PaStatus.PendingInfo
+            or PaStatus.Denied or PaStatus.Appealed;
+
+    // ── Workflow actions ──────────────────────────────────────────────────────
+    private async Task BeginReviewAsync() => await RunActionAsync(() => WorkflowSvc.BeginReviewAsync(Id));
+    private async Task ResubmitAsync()    => await RunActionAsync(() => WorkflowSvc.ResubmitAsync(Id));
+    private async Task AppealAsync()      => await RunActionAsync(() => WorkflowSvc.AppealAsync(Id));
+
+    private async Task HandleDeleteDraftAsync()
+    {
+        if (_deleteModal is not null)
+            await _deleteModal.ShowAsync();
+    }
+
+    private async Task ConfirmDeleteDraftAsync()
+    {
+        try
+        {
+            await PaRequestSvc.DeleteDraftAsync(Id);
+            Toast.ShowSuccess("Draft deleted.");
+            Nav.NavigateTo("/requests");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Delete draft failed for request {Id}", Id);
+            _errorMessage = "Delete failed. Please try again.";
+        }
+    }
+
+    private async Task ConfirmApproveAsync()
+    {
+        _showApproveForm = false;
+        await RunActionAsync(() => WorkflowSvc.ApproveAsync(Id, _approvalModel));
+    }
+
+    private async Task ConfirmDenyAsync()
+    {
+        if (_denyReasonId == 0)
+        {
+            _errorMessage = "Please select a denial reason.";
+            return;
+        }
+        _showDenyForm = false;
+        await RunActionAsync(() => WorkflowSvc.DenyAsync(Id, _denyReasonId, _denyNotes));
+    }
+
+    private async Task ConfirmWithdrawAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_withdrawReason))
+        {
+            _errorMessage = "A withdrawal reason is required.";
+            return;
+        }
+        _showWithdrawForm = false;
+        await RunActionAsync(() => WorkflowSvc.WithdrawAsync(Id, _withdrawReason));
+    }
+
+    private async Task ConfirmPendingInfoAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_pendingInfoReason))
+        {
+            _errorMessage = "Please enter a reason for requesting additional information.";
+            return;
+        }
+        _showPendingInfoForm = false;
+        await RunActionAsync(() => WorkflowSvc.RequestAdditionalInfoAsync(Id, _pendingInfoReason));
+    }
+
+    private async Task RunActionAsync(Func<Task<PaRequest>> action)
+    {
+        _errorMessage = null;
+        _actionInProgress = true;
+        try
+        {
+            _request = await action();
+            _statusHistory = await PaRequestSvc.GetStatusHistoryAsync(Id);
+            await LoadUserNamesAsync();   // refresh — action may set new ReviewerUserID
+            Toast.ShowSuccess("Action completed successfully.");
+        }
+        catch (WorkflowTransitionException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (BusinessRuleViolationException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Workflow action failed for request {Id}", Id);
+            _errorMessage = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            _actionInProgress = false;
+        }
+    }
+
+    // ── Comments ──────────────────────────────────────────────────────────────
+    private async Task AddCommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_commentText)) return;
+        _actionInProgress = true;
+        try
+        {
+            await PaRequestSvc.AddCommentAsync(Id, _commentText, _commentInternal);
+            _comments = await PaRequestSvc.GetCommentsAsync(Id);
+            _commentText = string.Empty;
+            _commentInternal = false;
+            Toast.ShowSuccess("Comment added.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Comment add failed.");
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _actionInProgress = false;
+        }
+    }
+
+    // ── Documents (T-C4) ──────────────────────────────────────────────────────
+    private async Task ConfirmUploadAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_uploadFileName))
+        {
+            _errorMessage = "File name is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_uploadDocType))
+        {
+            _errorMessage = "Document type is required.";
+            return;
+        }
+        _actionInProgress = true;
+        try
+        {
+            await PaRequestSvc.AddDocumentAsync(
+                Id, _uploadFileName, _uploadDocType, _uploadContentType, fileSizeBytes: 0);
+            _documents       = await PaRequestSvc.GetDocumentsAsync(Id);
+            await LoadUserNamesAsync();
+            _showUploadForm    = false;
+            _uploadFileName    = string.Empty;
+            _uploadDocType     = string.Empty;
+            _uploadContentType = "application/pdf";
+            Toast.ShowSuccess("Document attached.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Document upload failed.");
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _actionInProgress = false;
+        }
+    }
+
+    // ── Admin override (T-C5) ─────────────────────────────────────────────────
+    private async Task ConfirmOverrideAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_overrideJustification))
+        {
+            _errorMessage = "A justification is required for an administrative override.";
+            return;
+        }
+        _showOverrideForm = false;
+        _actionInProgress = true;
+        try
+        {
+            _request = await WorkflowSvc.AdminOverrideAsync(Id, _overrideTargetStatus, _overrideJustification);
+            _statusHistory        = await PaRequestSvc.GetStatusHistoryAsync(Id);
+            _overrideJustification = string.Empty;
+            Toast.ShowSuccess($"Status overridden to {_overrideTargetStatus}.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Admin override failed for request {Id}", Id);
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _actionInProgress = false;
+        }
+    }
+
+    // ── Date helpers ──────────────────────────────────────────────────────────
+    private void ParseApprovalStart(string? value)
+    {
+        _approvalStartStr = value ?? string.Empty;
+        if (DateTime.TryParse(value, out var dt))
+            _approvalModel.AuthorizationStartDate = dt;
+    }
+
+    private void ParseApprovalEnd(string? value)
+    {
+        _approvalEndStr = value ?? string.Empty;
+        if (DateTime.TryParse(value, out var dt))
+            _approvalModel.AuthorizationEndDate = dt;
+    }
+}

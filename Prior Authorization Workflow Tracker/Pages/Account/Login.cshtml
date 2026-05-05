@@ -1,0 +1,59 @@
+@page "/Account/Login"
+@model Prior_Authorization_Workflow_Tracker.Pages.Account.LoginModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In — Prior Authorization Tracker</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/app.css" />
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+<div class="container" style="max-width: 420px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h4 class="mb-0">Prior Authorization Tracker</h4>
+        </div>
+        <div class="card-body p-4">
+            <h5 class="card-title mb-4">Sign in to your account</h5>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div class="mb-3">
+                    <label asp-for="Input.Email" class="form-label">Email address</label>
+                    <input asp-for="Input.Email" class="form-control" autocomplete="email" />
+                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Password" class="form-label">Password</label>
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+                    <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input asp-for="Input.RememberMe" class="form-check-input" />
+                    <label asp-for="Input.RememberMe" class="form-check-label">Remember me</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Sign in</button>
+            </form>
+        </div>
+    </div>
+    <p class="text-center text-muted small mt-3">
+        For demo access, contact your system administrator.
+    </p>
+</div>
+</body>
+</html>

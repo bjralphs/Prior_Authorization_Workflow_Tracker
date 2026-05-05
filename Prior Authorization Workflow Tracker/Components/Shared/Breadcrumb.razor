@@ -1,0 +1,32 @@
+@* Breadcrumb — renders a Bootstrap breadcrumb from a list of (Label, Href) tuples (§16.2)
+   Usage:
+     <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", "/requests"), ("Detail", null) })" />
+*@
+
+@if (Items is { Length: > 0 })
+{
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            @for (var i = 0; i < Items.Length; i++)
+            {
+                var (label, href) = Items[i];
+                var isLast = i == Items.Length - 1;
+
+                if (isLast || href is null)
+                {
+                    <li class="breadcrumb-item active" aria-current="page">@label</li>
+                }
+                else
+                {
+                    <li class="breadcrumb-item"><a href="@href">@label</a></li>
+                }
+            }
+        </ol>
+    </nav>
+}
+
+@code {
+    /// <summary>Array of (Label, Href) pairs. Last item is rendered as active (no link).</summary>
+    [Parameter, EditorRequired]
+    public (string Label, string? Href)[] Items { get; set; } = [];
+}

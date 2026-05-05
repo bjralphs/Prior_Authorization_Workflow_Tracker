@@ -1,0 +1,261 @@
+@page "/admin/audit-log"
+@attribute [Authorize(Roles = "Administrator")]
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ILogger<AuditLog> Logger
+@using Prior_Authorization_Workflow_Tracker.Data
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Audit Log — PA Tracker</PageTitle>
+<Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Admin", (string?)null), ("Audit Log", (string?)null) })" />
+
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0">Audit Log</h4>
+    <span class="text-muted small ms-3">(@_totalCount records)</span>
+</div>
+
+@* ── Filters ──────────────────────────────────────────────────────────────── *@
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label form-label-sm">Entity</label>
+                <input type="text" class="form-control form-control-sm"
+                       @bind="_filterEntity" placeholder="e.g. PaRequest" />
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label form-label-sm">Action</label>
+                <input type="text" class="form-control form-control-sm"
+                       @bind="_filterAction" placeholder="e.g. StatusChanged" />
+            </div>
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label form-label-sm">User</label>
+                <input type="text" class="form-control form-control-sm"
+                       @bind="_filterUser" placeholder="Name or email" />
+            </div>
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label form-label-sm">From</label>
+                <input type="date" class="form-control form-control-sm" @bind="_filterFrom" />
+            </div>
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label form-label-sm">To</label>
+                <input type="date" class="form-control form-control-sm" @bind="_filterTo" />
+            </div>
+        </div>
+        <div class="row g-2 mt-1">
+            <div class="col-auto">
+                <button class="btn btn-primary btn-sm" @onclick="ApplyFilterAsync">Search</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFiltersAsync">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Table ────────────────────────────────────────────────────────────────── *@
+@if (_loading)
+{
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+}
+else if (_entries.Count == 0)
+{
+    <div class="alert alert-info">No audit log entries match the current filters.</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Entity</th>
+                        <th>Entity ID</th>
+                        <th>Action</th>
+                        <th>User</th>
+                        <th>IP</th>
+                        <th>Correlation ID</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _entries)
+                    {
+                        <tr>
+                            <td class="small text-nowrap">@entry.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td><span class="badge bg-secondary">@entry.EntityName</span></td>
+                            <td class="small"><code>@entry.EntityID</code></td>
+                            <td>@entry.Action</td>
+                            <td class="small">@(entry.UserName ?? entry.UserID)</td>
+                            <td class="small text-muted">@(entry.IpAddress ?? "—")</td>
+                            <td class="small text-muted">
+                                @if (entry.CorrelationId is not null)
+                                {
+                                    <code>@entry.CorrelationId</code>
+                                }
+                                else { <span>—</span> }
+                            </td>
+                            <td>
+                                @if (entry.OldValues is not null || entry.NewValues is not null)
+                                {
+                                    <button class="btn btn-sm btn-link p-0"
+                                            @onclick="() => ToggleDetail(entry.ID)">
+                                        @(_expandedId == entry.ID ? "Hide" : "Detail")
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                        @if (_expandedId == entry.ID)
+                        {
+                            <tr>
+                                <td colspan="8" class="bg-light p-3">
+                                    @if (entry.OldValues is not null)
+                                    {
+                                        <div class="mb-2">
+                                            <strong class="small text-danger">Before:</strong>
+                                            <pre class="small mb-0 text-danger">@entry.OldValues</pre>
+                                        </div>
+                                    }
+                                    @if (entry.NewValues is not null)
+                                    {
+                                        <div>
+                                            <strong class="small text-success">After:</strong>
+                                            <pre class="small mb-0 text-success">@entry.NewValues</pre>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ── Pagination ───────────────────────────────────────────────────────── *@
+    @if (_totalPages > 1)
+    {
+        <nav class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+                <li class="page-item @(PrevDisabled())">
+                    <button class="page-link" @onclick="() => GoToPageAsync(_page - 1)">‹</button>
+                </li>
+                @for (var p = 1; p <= _totalPages; p++)
+                {
+                    var pg = p;
+                    <li class="page-item @(PageActive(pg))">
+                        <button class="page-link" @onclick="() => GoToPageAsync(pg)">@(pg)</button>
+                    </li>
+                }
+                <li class="page-item @(NextDisabled())">
+                    <button class="page-link" @onclick="() => GoToPageAsync(_page + 1)">›</button>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+
+@code {
+    private const int PageSize = 50;
+
+    // Query-string pre-population from the admin dashboard quick-search widget (§12.1)
+    [SupplyParameterFromQuery(Name = "user")]   private string? QueryUser   { get; set; }
+    [SupplyParameterFromQuery(Name = "entity")] private string? QueryEntity { get; set; }
+    [SupplyParameterFromQuery(Name = "action")] private string? QueryAction { get; set; }
+
+    private bool _loading = true;
+    private List<Models.AuditLog> _entries = [];
+    private int _totalCount;
+    private int _page = 1;
+    private long? _expandedId;
+
+    // Filters
+    private string _filterEntity = string.Empty;
+    private string _filterAction = string.Empty;
+    private string _filterUser = string.Empty;
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+
+    private int _totalPages => (int)Math.Ceiling(_totalCount / (double)PageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Pre-populate filters from dashboard quick-search deep-link (§12.1)
+        if (!string.IsNullOrEmpty(QueryUser))   _filterUser   = QueryUser;
+        if (!string.IsNullOrEmpty(QueryEntity)) _filterEntity = QueryEntity;
+        if (!string.IsNullOrEmpty(QueryAction)) _filterAction = QueryAction;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            var query = db.AuditLogs.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(_filterEntity))
+                query = query.Where(a => a.EntityName.Contains(_filterEntity));
+
+            if (!string.IsNullOrWhiteSpace(_filterAction))
+                query = query.Where(a => a.Action.Contains(_filterAction));
+
+            if (!string.IsNullOrWhiteSpace(_filterUser))
+                query = query.Where(a =>
+                    (a.UserName != null && a.UserName.Contains(_filterUser)) ||
+                    a.UserID.Contains(_filterUser));
+
+            if (_filterFrom.HasValue)
+                query = query.Where(a => a.OccurredAt >= _filterFrom.Value);
+
+            if (_filterTo.HasValue)
+                query = query.Where(a => a.OccurredAt <= _filterTo.Value.AddDays(1));
+
+            _totalCount = await query.CountAsync();
+
+            _entries = await query
+                .OrderByDescending(a => a.OccurredAt)
+                .Skip((_page - 1) * PageSize)
+                .Take(PageSize)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load audit log.");
+            _entries = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _filterEntity = _filterAction = _filterUser = string.Empty;
+        _filterFrom = _filterTo = null;
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task GoToPageAsync(int page)
+    {
+        _page = page;
+        await LoadAsync();
+    }
+
+    private void ToggleDetail(long id)
+        => _expandedId = _expandedId == id ? null : id;
+
+    private string PrevDisabled() => _page == 1 ? "disabled" : "";
+    private string NextDisabled() => _page >= _totalPages ? "disabled" : "";
+    private string PageActive(int pg) => pg == _page ? "active" : "";
+}

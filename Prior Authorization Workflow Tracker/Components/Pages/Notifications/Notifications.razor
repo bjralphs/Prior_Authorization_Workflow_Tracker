@@ -1,0 +1,144 @@
+@page "/notifications"
+@attribute [Authorize]
+@inject INotificationService NotifSvc
+@inject ICurrentUserService CurrentUser
+@inject ToastService Toast
+@inject ILogger<Notifications> Logger
+
+<PageTitle>Notifications — PA Tracker</PageTitle>
+<Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Notifications", (string?)null) })" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        Notifications
+        @if (_unread.Count > 0)
+        {
+            <span class="badge bg-danger ms-2">@_unread.Count</span>
+        }
+    </h4>
+    @if (_unread.Count > 0)
+    {
+        <button class="btn btn-outline-secondary btn-sm" @onclick="MarkAllReadAsync">
+            Mark all as read
+        </button>
+    }
+</div>
+
+@if (_loading)
+{
+    <div class="d-flex justify-content-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_unread.Count == 0)
+{
+    <div class="text-center py-5 text-muted">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor"
+             class="bi bi-bell-slash mb-3 d-block mx-auto" viewBox="0 0 16 16">
+            <path d="M5.164 14c.195.387.42.74.696 1.004a3.002 3.002 0 0 0 4.28 0A5.04 5.04 0 0 0 10.836 14H5.164z"/>
+            <path d="M13.022 9.374l-.93-.93-.002-.002L5.164 1.517A6.5 6.5 0 0 1 14.05 8.17l-.003.003L14 8.282l-.978 1.092z"/>
+        </svg>
+        <p>You have no unread notifications.</p>
+    </div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var n in _unread)
+        {
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start py-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge @NotifBadgeClass(n.NotificationType)">
+                            @n.NotificationType
+                        </span>
+                        @if (n.PaRequestID.HasValue)
+                        {
+                            <a href="/requests/@n.PaRequestID" class="small text-decoration-none">
+                                View Request
+                            </a>
+                        }
+                    </div>
+                    <p class="mb-1">@n.Message</p>
+                    <small class="text-muted">@n.CreatedAt.ToString("yyyy-MM-dd HH:mm") UTC</small>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary ms-3 flex-shrink-0"
+                        @onclick="() => MarkReadAsync(n.ID)">
+                    Dismiss
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<Notification> _unread = [];
+
+    protected override async Task OnInitializedAsync()
+        => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error   = null;
+        try
+        {
+            _unread = await NotifSvc.GetUnreadAsync(CurrentUser.UserId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Notifications load failed.");
+            _error = "Unable to load notifications. Please refresh.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task MarkReadAsync(int id)
+    {
+        try
+        {
+            await NotifSvc.MarkReadAsync(id, CurrentUser.UserId);
+            _unread = _unread.Where(n => n.ID != id).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Mark-read failed for notification {Id}.", id);
+            Toast.ShowError("Could not dismiss notification. Please try again.");
+        }
+    }
+
+    private async Task MarkAllReadAsync()
+    {
+        try
+        {
+            await NotifSvc.MarkAllReadAsync(CurrentUser.UserId);
+            _unread = [];
+            Toast.ShowSuccess("All notifications dismissed.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Mark-all-read failed.");
+            Toast.ShowError("Could not dismiss notifications. Please try again.");
+        }
+    }
+
+    private static string NotifBadgeClass(NotificationType type) => type switch
+    {
+        NotificationType.ExpirationAlert    => "bg-danger",
+        NotificationType.DecisionRendered   => "bg-success",
+        NotificationType.AppealWindow       => "bg-warning text-dark",
+        NotificationType.StatusChanged      => "bg-info text-dark",
+        _                                   => "bg-secondary",
+    };
+}

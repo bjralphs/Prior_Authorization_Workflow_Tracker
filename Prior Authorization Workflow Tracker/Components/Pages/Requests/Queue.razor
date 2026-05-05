@@ -1,0 +1,399 @@
+@page "/requests"
+@attribute [Authorize]
+@inject IPaRequestService RequestSvc
+@inject ICurrentUserService CurrentUser
+@inject NavigationManager Nav
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ILogger<Queue> Logger
+@using Prior_Authorization_Workflow_Tracker.Data
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Request Queue — PA Tracker</PageTitle>
+<Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", (string?)null) })" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">PA Request Queue</h4>
+    <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")">
+        <Authorized>
+            <a href="/requests/new" class="btn btn-primary btn-sm">
+                + Submit New Request
+            </a>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@* ── Filters ──────────────────────────────────────────────────────────────── *@
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label form-label-sm">Status</label>
+                <select class="form-select form-select-sm" @bind="_filter.Status" @bind:after="ResetAndLoad">
+                    <option value="">All</option>
+                    @foreach (var s in Enum.GetValues<PaStatus>())
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label form-label-sm">Priority</label>
+                <select class="form-select form-select-sm" @bind="_filter.Priority" @bind:after="ResetAndLoad">
+                    <option value="">All</option>
+                    @foreach (var p in Enum.GetValues<PaPriority>())
+                    {
+                        <option value="@p">@p</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label form-label-sm">Submitted From</label>
+                <input type="date" class="form-control form-control-sm"
+                       @bind="_submittedFrom" @bind:after="ResetAndLoad" />
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label form-label-sm">Submitted To</label>
+                <input type="date" class="form-control form-control-sm"
+                       @bind="_submittedTo" @bind:after="ResetAndLoad" />
+            </div>
+        </div>
+        <div class="row g-2 mt-1 align-items-end">
+            <div class="col-sm-6 col-md-4">
+                <label class="form-label form-label-sm">Insurance Plan / Payer</label>
+                <select class="form-select form-select-sm" @bind="_filter.InsurancePlanID" @bind:after="ResetAndLoad">
+                    <option value="">All</option>
+                    @foreach (var plan in _plans)
+                    {
+                        <option value="@plan.ID">@plan.PayerName — @plan.PlanName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-4">
+                <label class="form-label form-label-sm">Procedure Code</label>
+                <select class="form-select form-select-sm" @bind="_filter.ProcedureCodeID" @bind:after="ResetAndLoad">
+                    <option value="">All</option>
+                    @foreach (var code in _procedureCodes)
+                    {
+                        <option value="@(code.ID)">@(code.Code) — @(code.Description)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-4">
+                <label class="form-label form-label-sm">Assigned Reviewer</label>
+                <select class="form-select form-select-sm" @bind="_filter.ReviewerUserID" @bind:after="ResetAndLoad">
+                    <option value="">All</option>
+                    @foreach (var reviewer in _reviewers)
+                    {
+                        <option value="@reviewer.Id">@reviewer.FullName</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="row g-2 mt-1 align-items-end">
+            <div class="col-sm-6 col-md-6">
+                <label class="form-label form-label-sm" for="patientSearch">Patient Name / MRN</label>
+                <input id="patientSearch" type="search" class="form-control form-control-sm"
+                       placeholder="Search by name or MRN…"
+                       @bind="_filter.PatientSearch" @bind:after="ResetAndLoad" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">Clear Filters</button>
+            </div>
+            <div class="col-auto ms-auto text-muted small">
+                @if (!_loading)
+                {
+                    <span>@_totalCount result@(_totalCount != 1 ? "s" : "")</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Table ────────────────────────────────────────────────────────────────── *@
+@if (_loading)
+{
+    <div class="d-flex justify-content-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-info">No requests match the current filters.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>
+                        <button class="btn btn-link p-0 text-dark fw-semibold text-decoration-none"
+                                @onclick='() => Sort("PatientName")'>
+                            Patient @SortIcon("PatientName")
+                        </button>
+                    </th>
+                    <th>Request #</th>
+                    <th>Insurance</th>
+                    <th>Procedure</th>
+                    <th>
+                        <button class="btn btn-link p-0 text-dark fw-semibold text-decoration-none"
+                                @onclick='() => Sort("Priority")'>
+                            Priority @SortIcon("Priority")
+                        </button>
+                    </th>
+                    <th>Status</th>
+                    <th>
+                        <button class="btn btn-link p-0 text-dark fw-semibold text-decoration-none"
+                                @onclick='() => Sort("SubmittedAt")'>
+                            Submitted @SortIcon("SubmittedAt")
+                        </button>
+                    </th>
+                    <th>
+                        <button class="btn btn-link p-0 text-dark fw-semibold text-decoration-none"
+                                @onclick='() => Sort("DecisionDueDate")'>
+                            Due @SortIcon("DecisionDueDate")
+                        </button>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _items)
+                {
+                    var rowClass = RowClass(item);
+                    <tr class="@rowClass" style="cursor:pointer;"
+                        @onclick="@(() => Nav.NavigateTo($"/requests/{item.ID}"))">
+                        <td>
+                            <div class="fw-semibold">@item.PatientName</div>
+                            <div class="text-muted small">@item.PatientMrn</div>
+                        </td>
+                        <td>
+                            <a href="/requests/@item.ID" @onclick:stopPropagation>
+                                @item.RequestNumber
+                            </a>
+                        </td>
+                        <td>
+                            <div class="small">@(item.InsurancePlan?.PlanName ?? "—")</div>
+                            <div class="text-muted small">@(item.InsurancePlan?.PayerName ?? "")</div>
+                        </td>
+                        <td>
+                            <div class="small">@(item.ProcedureCode?.Code ?? "—")</div>
+                            <div class="text-muted small text-truncate" style="max-width:120px;"
+                                 title="@item.ProcedureCode?.Description">
+                                @item.ProcedureCode?.Description
+                            </div>
+                        </td>
+                        <td><PriorityBadge Priority="item.Priority" /></td>
+                        <td>
+                            <StatusBadge Status="item.Status" />
+                            @if (item.Status == PaStatus.Appealed)
+                            {
+                                <span class="badge badge-appealed text-white ms-1">APPEAL</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @(item.SubmittedAt.HasValue
+                                ? item.SubmittedAt.Value.ToString("yyyy-MM-dd")
+                                : "—")
+                        </td>
+                        <td class="small">
+                            @if (item.DecisionDueDate.HasValue)
+                            {
+                                var due = item.DecisionDueDate.Value;
+                                var isOverdue = due.Date < DateTime.UtcNow.Date;
+                                var isToday   = due.Date == DateTime.UtcNow.Date;
+                                if (isOverdue)
+                                {
+                                    <span class="badge bg-danger">Overdue</span>
+                                }
+                                else if (isToday)
+                                {
+                                    <span class="badge bg-warning text-dark">Due today</span>
+                                }
+                                else
+                                {
+                                    <span>@due.ToString("yyyy-MM-dd")</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* ── Pagination ────────────────────────────────────────────────────── *@
+    @if (_totalPages > 1)
+    {
+        <nav>
+            <ul class="pagination pagination-sm justify-content-center">
+                <li class="page-item @(PrevDisabled())">
+                    <button class="page-link" @onclick="() => GoToPage(_currentPage - 1)">‹</button>
+                </li>
+                @for (var p = 1; p <= _totalPages; p++)
+                {
+                    var page = p;
+                    <li class="page-item @(PageActive(page))">
+                        <button class="page-link" @onclick="() => GoToPage(page)">@(page)</button>
+                    </li>
+                }
+                <li class="page-item @(NextDisabled())">
+                    <button class="page-link" @onclick="() => GoToPage(_currentPage + 1)">›</button>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+
+@code {
+    // ── Filter state ──────────────────────────────────────────────────────────
+    private readonly PaRequestFilter _filter = new();
+    private DateTime? _submittedFrom;
+    private DateTime? _submittedTo;
+    private int _currentPage = 1;
+    private const int PageSize = 25;
+
+    // ── Reference data for filter dropdowns ───────────────────────────────────
+    private IReadOnlyList<InsurancePlan> _plans = [];
+    private IReadOnlyList<ProcedureCode> _procedureCodes = [];
+    private IReadOnlyList<ApplicationUser> _reviewers = [];
+
+    // ── Result state ──────────────────────────────────────────────────────────
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<PaRequest> _items = [];
+    private int _totalCount;
+    private int _totalPages => (int)Math.Ceiling(_totalCount / (double)PageSize);
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadReferenceDataAsync(), LoadAsync());
+    }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            _plans = await db.InsurancePlans
+                .AsNoTracking()
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.PayerName)
+                .ToListAsync();
+            _procedureCodes = await db.ProcedureCodes
+                .AsNoTracking()
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Code)
+                .ToListAsync();
+            _reviewers = await db.Users
+                .AsNoTracking()
+                .Join(db.UserRoles, u => u.Id, ur => ur.UserId, (u, ur) => new { User = u, ur.RoleId })
+                .Join(db.Roles, x => x.RoleId, r => r.Id, (x, r) => new { x.User, RoleName = r.Name })
+                .Where(x => x.RoleName == Constants.Roles.Reviewer)
+                .Select(x => x.User)
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Queue reference data load failed.");
+        }
+    }
+
+    // ── Data loading ──────────────────────────────────────────────────────────
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error   = null;
+        try
+        {
+            _filter.SubmittedFrom = _submittedFrom;
+            _filter.SubmittedTo   = _submittedTo;
+            _filter.Page     = _currentPage;
+            _filter.PageSize = PageSize;
+
+            var (items, total) = await RequestSvc.GetQueueAsync(_filter);
+            _items      = items;
+            _totalCount = total;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Queue load failed.");
+            _error = "Unable to load requests. Please refresh the page.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ResetAndLoad()
+    {
+        _currentPage = 1;
+        await LoadAsync();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _totalPages) return;
+        _currentPage = page;
+        await LoadAsync();
+    }
+
+    private async Task ClearFilters()
+    {
+        _filter.Status          = null;
+        _filter.Priority        = null;
+        _filter.InsurancePlanID = null;
+        _filter.ProcedureCodeID = null;
+        _filter.ReviewerUserID  = null;
+        _filter.PatientSearch   = null;
+        _submittedFrom = null;
+        _submittedTo   = null;
+        _currentPage   = 1;
+        await LoadAsync();
+    }
+
+    // ── Sorting ───────────────────────────────────────────────────────────────
+    private async Task Sort(string column)
+    {
+        if (_filter.SortBy == column)
+            _filter.SortDescending = !_filter.SortDescending;
+        else
+        {
+            _filter.SortBy         = column;
+            _filter.SortDescending = true;
+        }
+        _currentPage = 1;
+        await LoadAsync();
+    }
+
+    private string SortIcon(string column) =>
+        _filter.SortBy != column ? "" :
+        _filter.SortDescending ? "▼" : "▲";
+
+    // ── Row coloring ──────────────────────────────────────────────────────────
+    private static string RowClass(PaRequest r) => r.Status switch
+    {
+        PaStatus.Denied  or PaStatus.Expired  => "table-danger",
+        PaStatus.PendingInfo                  => "table-warning",
+        PaStatus.Approved                     => "table-success",
+        PaStatus.Appealed                     => "table-info",
+        _                                     => "",
+    };
+
+    // ── Pagination CSS helpers (avoid nested quotes in Razor attributes) ───────
+    private string PrevDisabled() => _currentPage == 1 ? "disabled" : "";
+    private string NextDisabled() => _currentPage >= _totalPages ? "disabled" : "";
+    private string PageActive(int page) => page == _currentPage ? "active" : "";
+}

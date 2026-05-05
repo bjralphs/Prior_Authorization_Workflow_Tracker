@@ -1,0 +1,341 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = "Administrator")]
+@inject IUserManagementService UserMgmt
+@inject IExpirationJobTrigger ExpirationTrigger
+@inject ToastService Toast
+@inject ILogger<Users> Logger
+
+<PageTitle>User Management — PA Tracker</PageTitle>
+<Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Admin", (string?)null), ("Users", (string?)null) })" />
+
+<div class="d-flex align-items-center mb-4 gap-3">
+    <h4 class="mb-0">User Management</h4>
+    <button class="btn btn-outline-secondary btn-sm" @onclick="RunExpirationCheckAsync"
+            disabled="@_runningExpiration" title="Manually trigger the expiration check (PRD \u00a78.8)">
+        @if (_runningExpiration)
+        {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+        }
+        Run Expiration Check
+    </button>
+    <button class="btn btn-primary btn-sm ms-auto" @onclick="OpenCreateForm">
+        + New User
+    </button>
+</div>
+
+@* ── Error banner ─────────────────────────────────────────────────────────── *@
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger alert-dismissible">
+        @_errorMessage
+        <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+    </div>
+}
+
+@* ── Temporary password display ───────────────────────────────────────────── *@
+@if (_newUserPassword is not null)
+{
+    <div class="alert alert-success">
+        <strong>User created.</strong> Temporary password: <code>@_newUserPassword</code>
+        <br /><span class="small text-muted">Copy this now — it will not be shown again.</span>
+    </div>
+}
+
+@* ── Create user form ─────────────────────────────────────────────────────── *@
+@if (_showCreateForm)
+{
+    <div class="card mb-4">
+        <div class="card-header">Create New User</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" @bind="_newEmail" />
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" @bind="_newFullName" />
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Role <span class="text-danger">*</span></label>
+                    <select class="form-select" @bind="_newRole">
+                        <option value="">— Select role —</option>
+                        <option value="@Roles.Specialist">@Roles.Specialist</option>
+                        <option value="@Roles.Provider">@Roles.Provider</option>
+                        <option value="@Roles.BillingManager">@Roles.BillingManager</option>
+                        <option value="@Roles.Reviewer">@Roles.Reviewer</option>
+                        <option value="@Roles.Admin">@Roles.Admin</option>
+                    </select>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Department</label>
+                    <input type="text" class="form-control" @bind="_newDepartment" />
+                </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary btn-sm" @onclick="CreateUserAsync" disabled="@_saving">
+                    @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                    Create User
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="() => _showCreateForm = false">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── User list table ──────────────────────────────────────────────────────── *@
+@if (_loading)
+{
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+}
+else if (_users.Count == 0)
+{
+    <div class="alert alert-info">No users found.</div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (user, roles) in _users)
+                    {
+                        <tr class="@(user.IsActive ? "" : "table-secondary text-muted")">
+                            <td>@user.FullName</td>
+                            <td>@user.Email</td>
+                            <td>
+                                @if (_editingRoleUserId == user.Id)
+                                {
+                                    <select class="form-select form-select-sm" @bind="_editingRole">
+                                        <option value="@Roles.Specialist">@Roles.Specialist</option>
+                                        <option value="@Roles.Provider">@Roles.Provider</option>
+                                        <option value="@Roles.BillingManager">@Roles.BillingManager</option>
+                                        <option value="@Roles.Reviewer">@Roles.Reviewer</option>
+                                        <option value="@Roles.Admin">@Roles.Admin</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@(roles.FirstOrDefault() ?? "None")</span>
+                                }
+                            </td>
+                            <td>@(user.Department ?? "—")</td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Inactive</span>
+                                }
+                            </td>
+                            <td class="small">@user.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                @if (_editingRoleUserId == user.Id)
+                                {
+                                    <button class="btn btn-sm btn-success me-1"
+                                            @onclick="() => SaveRoleAsync(user.Id)"
+                                            disabled="@_saving">Save</button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            @onclick="() => _editingRoleUserId = null">Cancel</button>
+                                }
+                                else
+                                {
+                                    var currentRole = roles.FirstOrDefault() ?? string.Empty;
+                                    <button class="btn btn-sm btn-outline-secondary me-1"
+                                            @onclick="() => BeginEditRole(user.Id, currentRole)"
+                                            disabled="@_saving">
+                                        Change Role
+                                    </button>
+                                    @if (user.IsActive)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => ToggleActiveAsync(user.Id, false)"
+                                                disabled="@_saving">
+                                            Deactivate
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-success"
+                                                @onclick="() => ToggleActiveAsync(user.Id, true)"
+                                                disabled="@_saving">
+                                            Reactivate
+                                        </button>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _runningExpiration;
+    private string? _errorMessage;
+    private string? _newUserPassword;
+
+    private IReadOnlyList<(ApplicationUser User, IList<string> Roles)> _users = [];
+
+    // Create form
+    private bool _showCreateForm;
+    private string _newEmail = string.Empty;
+    private string _newFullName = string.Empty;
+    private string _newRole = string.Empty;
+    private string _newDepartment = string.Empty;
+
+    // Role edit inline
+    private string? _editingRoleUserId;
+    private string _editingRole = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+        => await LoadUsersAsync();
+
+    private async Task LoadUsersAsync()
+    {
+        _loading = true;
+        try
+        {
+            _users = await UserMgmt.GetAllUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load users.");
+            _errorMessage = "Failed to load user list.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenCreateForm()
+    {
+        _newEmail = _newFullName = _newRole = _newDepartment = string.Empty;
+        _newUserPassword = null;
+        _showCreateForm = true;
+    }
+
+    private async Task RunExpirationCheckAsync()
+    {
+        _runningExpiration = true;
+        try
+        {
+            var expired = await ExpirationTrigger.TriggerAsync();
+            Toast.ShowSuccess($"Expiration check complete: {expired} request(s) expired.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Manual expiration check failed.");
+            Toast.ShowError("Expiration check failed. See server logs for details.");
+        }
+        finally
+        {
+            _runningExpiration = false;
+        }
+    }
+
+    private async Task CreateUserAsync()
+    {
+        _errorMessage = null;
+        if (string.IsNullOrWhiteSpace(_newEmail) ||
+            string.IsNullOrWhiteSpace(_newFullName) ||
+            string.IsNullOrWhiteSpace(_newRole))
+        {
+            _errorMessage = "Email, Full Name, and Role are required.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var (user, password) = await UserMgmt.CreateUserAsync(
+                _newEmail, _newFullName, _newRole,
+                string.IsNullOrWhiteSpace(_newDepartment) ? null : _newDepartment);
+            _newUserPassword = password;
+            _showCreateForm = false;
+            Toast.ShowSuccess($"User {user.Email} created.");
+            await LoadUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "User creation failed.");
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void BeginEditRole(string userId, string currentRole)
+    {
+        _editingRoleUserId = userId;
+        _editingRole = currentRole;
+    }
+
+    private async Task SaveRoleAsync(string userId)
+    {
+        _saving = true;
+        _errorMessage = null;
+        try
+        {
+            await UserMgmt.ChangeRoleAsync(userId, _editingRole);
+            _editingRoleUserId = null;
+            Toast.ShowSuccess("Role updated.");
+            await LoadUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Role change failed for user {UserId}", userId);
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task ToggleActiveAsync(string userId, bool activate)
+    {
+        _saving = true;
+        _errorMessage = null;
+        try
+        {
+            if (activate)
+                await UserMgmt.ReactivateUserAsync(userId);
+            else
+                await UserMgmt.DeactivateUserAsync(userId);
+            Toast.ShowSuccess(activate ? "User reactivated." : "User deactivated.");
+            await LoadUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Toggle active failed for user {UserId}", userId);
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

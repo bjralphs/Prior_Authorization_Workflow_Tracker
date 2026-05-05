@@ -1,0 +1,720 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject IReportingService ReportingSvc
+@inject ICurrentUserService CurrentUser
+@inject NavigationManager Nav
+@inject ILogger<Home> Logger
+
+<PageTitle>Dashboard — PA Tracker</PageTitle>
+<Breadcrumb Items="@(new[] { ("Dashboard", (string?)null) })" />
+
+@if (_loading)
+{
+    <div class="d-flex justify-content-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading…</span>
+        </div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else
+{
+    <h4 class="mb-4">Dashboard</h4>
+
+    @* ── Specialist panel ────────────────────────────────────────────────── *@
+    <AuthorizeView Roles="Authorization Specialist">
+        <Authorized>
+            @if (_specialistDash is not null)
+            {
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-secondary h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">My Drafts</div>
+                                <div class="display-6 fw-bold text-secondary">@_specialistDash.MyDrafts</div>
+                                <a href="/requests?status=Draft" class="small">View drafts →</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">My Submitted</div>
+                                <div class="display-6 fw-bold text-primary">@_specialistDash.MySubmitted</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-warning h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Awaiting My Response</div>
+                                <div class="display-6 fw-bold text-warning">@_specialistDash.MyPendingInfo</div>
+                                @if (_specialistDash.MyPendingInfo > 0)
+                                {
+                                    <a href="/requests?status=PendingInfo" class="small">Respond now →</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Approved this month</div>
+                                <div class="fs-3 fw-semibold text-success">@_specialistDash.MyApprovedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Denied this month</div>
+                                <div class="fs-3 fw-semibold text-danger">@_specialistDash.MyDeniedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card border-warning h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">My Auths Expiring ≤ 30 days</div>
+                                <div class="fs-3 fw-semibold text-warning">@_specialistDash.MyExpiringSoon</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @* GAP-01: Requests past decision due date *@
+                @if (_specialistDash.MyOverdueRequests > 0)
+                {
+                    <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+                        <span class="bi bi-exclamation-octagon-fill"></span>
+                        <span><strong>@_specialistDash.MyOverdueRequests</strong> of your requests @(_specialistDash.MyOverdueRequests == 1 ? "has" : "have") passed the decision due date.</span>
+                    </div>
+                }
+                @* GAP-02: Recent activity feed *@
+                @if (_recentActivity.Count > 0)
+                {
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Recent Activity</h6>
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Request</th>
+                                    <th>Patient</th>
+                                    <th>New Status</th>
+                                    <th>When</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _recentActivity)
+                                {
+                                    <tr>
+                                        <td><a href="/requests/@item.RequestId" class="small">@item.RequestNumber</a></td>
+                                        <td class="small">@item.PatientName</td>
+                                        <td><StatusBadge Status="item.NewStatus" /></td>
+                                        <td class="small text-muted">@item.OccurredAt.ToString("MMM d, HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+    @* ── Provider panel ──────────────────────────────────────────────────── *@
+    <AuthorizeView Roles="Treating Provider">
+        <Authorized>
+            @if (_providerDash is not null)
+            {
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">My Submitted</div>
+                                <div class="display-6 fw-bold text-primary">@_providerDash.MySubmitted</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="card border-info h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Under Review</div>
+                                <div class="display-6 fw-bold text-info">@_providerDash.MyUnderReview</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="card border-warning h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Additional Info Needed</div>
+                                <div class="display-6 fw-bold text-warning">@_providerDash.MyPendingInfo</div>
+                                @if (_providerDash.MyPendingInfo > 0)
+                                {
+                                    <a href="/requests?status=PendingInfo" class="small">Respond now →</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="card border-success h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Approved this month</div>
+                                <div class="display-6 fw-bold text-success">@_providerDash.MyApprovedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @if (_providerDash.MyExpiringSoon > 0)
+                {
+                    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+                        <span class="bi bi-exclamation-triangle-fill"></span>
+                        <span><strong>@_providerDash.MyExpiringSoon</strong> of your authorizations expire within 30 days.</span>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+    @* ── Reviewer panel ──────────────────────────────────────────────────── *@
+    <AuthorizeView Roles="Payer Reviewer">
+        <Authorized>
+            @if (_reviewerDash is not null)
+            {
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-danger h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Awaiting Review</div>
+                                <div class="display-6 fw-bold text-danger">@_reviewerDash.AwaitingReview</div>
+                                @if (_reviewerDash.AwaitingReview > 0)
+                                {
+                                    <a href="/requests?status=Submitted" class="small">Review queue →</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-primary h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Under Review by Me</div>
+                                <div class="display-6 fw-bold text-primary">@_reviewerDash.UnderReviewByMe</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-warning h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Pending Additional Info</div>
+                                <div class="display-6 fw-bold text-warning">@_reviewerDash.PendingInfoTotal</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Approved this month</div>
+                                <div class="fs-3 fw-semibold text-success">@_reviewerDash.ApprovedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Denied this month</div>
+                                <div class="fs-3 fw-semibold text-danger">@_reviewerDash.DeniedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card border-danger h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Overdue Requests</div>
+                                <div class="fs-3 fw-semibold text-danger">@_reviewerDash.OverdueRequests</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @* GAP-05 + GAP-06: Pending > 5 days and average decision time *@
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <div class="card @(_reviewerDash.PendingMoreThan5Days > 0 ? "border-warning" : "") h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Pending &gt; 5 days</div>
+                                <div class="fs-3 fw-semibold @(_reviewerDash.PendingMoreThan5Days > 0 ? "text-warning" : "")">@_reviewerDash.PendingMoreThan5Days</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Avg Decision Time (this month)</div>
+                                <div class="fs-3 fw-semibold">@_reviewerDash.AvgDecisionDaysThisMonth:F1 days</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </Authorized>
+    </AuthorizeView>
+
+    @* ── Billing Manager panel ────────────────────────────────────────────── *@
+    <AuthorizeView Roles="Billing Manager">
+        <Authorized>
+            @if (_billingDash is not null)
+            {
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-success h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Active Approved Auths</div>
+                                <div class="display-6 fw-bold text-success">@_billingDash.ApprovedActive</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-warning h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Expiring ≤ 30 days</div>
+                                <div class="display-6 fw-bold text-warning">@_billingDash.ExpiringSoon</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card border-secondary h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">Approval Rate (this month)</div>
+                                <div class="display-6 fw-bold">@_billingDash.ApprovalRatePct%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Approved this month</div>
+                                <div class="fs-3 fw-semibold text-success">@_billingDash.ApprovedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Denied this month</div>
+                                <div class="fs-3 fw-semibold text-danger">@_billingDash.DeniedThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Expired this month</div>
+                                <div class="fs-3 fw-semibold text-secondary">@_billingDash.ExpiredThisMonth</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <a href="/reports" class="btn btn-outline-success btn-sm">
+                        <span class="bi bi-file-earmark-spreadsheet me-1"></span>Open Reports &amp; CSV Export
+                    </a>
+                </div>
+                @* GAP-03: Pending requests count *@
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="text-muted small">Pending Requests (active)</div>
+                                <div class="fs-3 fw-semibold">@_billingDash.PendingRequests</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @* GAP-04: Top 5 denial reasons *@
+                @if (_billingTopDenials.Count > 0)
+                {
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">Top Denial Reasons (this month)</h6>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Reason</th>
+                                    <th class="text-end">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var d in _billingTopDenials)
+                                {
+                                    <tr>
+                                        <td class="small">@d.Description</td>
+                                        <td class="text-end fw-semibold">@d.Count</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
+
+    @* ── Admin panel — User Activity Summary + Audit Log Quick-Search (§12.1) ── *@
+    <AuthorizeView Roles="Administrator">
+        <Authorized>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Admin Panel</span>
+                    <div class="d-flex gap-2">
+                        <a href="/admin/users" class="btn btn-outline-secondary btn-sm">User Management</a>
+                        <a href="/admin/audit-log" class="btn btn-outline-secondary btn-sm">Full Audit Log</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+
+                        @* User Activity Summary (top submitters this month) *@
+                        <div class="col-lg-6">
+                            <h6 class="text-muted mb-2">Submission Volume This Month</h6>
+                            @if (_adminVolume.Count == 0)
+                            {
+                                <p class="text-muted small">No submissions this month.</p>
+                            }
+                            else
+                            {
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Provider</th>
+                                            <th class="text-end">Submitted</th>
+                                            <th class="text-end">Approved</th>
+                                            <th class="text-end">Denied</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var v in _adminVolume.Take(5))
+                                        {
+                                            <tr>
+                                                <td class="small">@v.ProviderDisplayName</td>
+                                                <td class="text-end">@v.SubmissionCount</td>
+                                                <td class="text-end text-success">@v.ApprovedCount</td>
+                                                <td class="text-end text-danger">@v.DeniedCount</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+
+                        @* Audit Log Quick-Search *@
+                        <div class="col-lg-6">
+                            <h6 class="text-muted mb-2">Quick Audit Search</h6>
+                            <div class="d-flex gap-2 mb-2">
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="User name or email…"
+                                       @bind="_adminQuickUser" @bind:event="oninput" />
+                                <input type="text" class="form-control form-control-sm"
+                                       placeholder="Entity (e.g. PaRequest)"
+                                       @bind="_adminQuickEntity" @bind:event="oninput" />
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm" @onclick="AdminQuickSearch">Search</button>
+                                <a href="/admin/audit-log" class="btn btn-outline-secondary btn-sm">Clear</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    @* ── Admin / shared global summary (always shown below role panel) ────── *@
+    <AuthorizeView Roles="Administrator,Authorization Specialist,Payer Reviewer">
+        <Authorized>
+            @* ── KPI tiles ───────────────────────────────────────────────── *@
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card border-primary h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Open Requests</div>
+                            <div class="display-6 fw-bold text-primary">@_summary!.OpenRequests</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card border-warning h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Pending My Action</div>
+                            <div class="display-6 fw-bold text-warning">@_summary!.PendingMyAction</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card border-danger h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Overdue</div>
+                            <div class="display-6 fw-bold text-danger">@_summary!.OverdueRequests</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card border-secondary h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Expiring ≤ 30 days</div>
+                            <div class="display-6 fw-bold text-secondary">@_summary!.ExpiringSoon</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ── This-month summary ───────────────────────────────────────── *@
+            <div class="row g-3 mb-4">
+                <div class="col-sm-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Submitted this month</div>
+                            <div class="fs-3 fw-semibold">@_summary!.SubmittedThisMonth</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Approved this month</div>
+                            <div class="fs-3 fw-semibold text-success">@_summary!.ApprovedThisMonth</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="text-muted small">Denied this month</div>
+                            <div class="fs-3 fw-semibold text-danger">@_summary!.DeniedThisMonth</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <div class="row g-3">
+
+        @* ── Status breakdown ──────────────────────────────────────────── *@
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">Request Status Breakdown</div>
+                <div class="card-body p-0">
+                    @if (_statusSummary.Count == 0)
+                    {
+                        <p class="text-muted p-3 mb-0">No requests found.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th class="text-end">Count</th>
+                                    <th class="text-end">Overdue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in _statusSummary)
+                                {
+                                    <tr>
+                                        <td><StatusBadge Status="row.Status" /></td>
+                                        <td class="text-end">@row.Count</td>
+                                        <td class="text-end">
+                                            @if (row.OverdueCount > 0)
+                                            {
+                                                <span class="badge bg-danger">@row.OverdueCount</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ── Expiring authorizations ───────────────────────────────────── *@
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    Authorizations Expiring Soon
+                    <span class="badge bg-secondary">Next 30 days</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (_expiring.Count == 0)
+                    {
+                        <p class="text-muted p-3 mb-0">No authorizations expiring in the next 30 days.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Request</th>
+                                    <th>Patient</th>
+                                    <th class="text-end">Expires In</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _expiring)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="/requests/@item.RequestId">@item.RequestNumber</a>
+                                        </td>
+                                        <td>@item.PatientName</td>
+                                        <td class="text-end">
+                                            @if (item.DaysUntilExpiry <= 7)
+                                            {
+                                                <span class="badge bg-danger">@item.DaysUntilExpiry days</span>
+                                            }
+                                            else if (item.DaysUntilExpiry <= 14)
+                                            {
+                                                <span class="badge bg-warning text-dark">@item.DaysUntilExpiry days</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@item.DaysUntilExpiry days</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private DashboardSummary? _summary;
+    private IReadOnlyList<RequestStatusSummary> _statusSummary = [];
+    private IReadOnlyList<ExpiringAuthorization> _expiring = [];
+
+    // Role-specific dashboard state (T-B3–T-B8)
+    private SpecialistDashboard? _specialistDash;
+    private ProviderDashboard?   _providerDash;
+    private ReviewerDashboard?   _reviewerDash;
+    private BillingDashboard?    _billingDash;
+
+    // Specialist activity feed (§12.1 GAP-02)
+    private IReadOnlyList<RecentActivityItem> _recentActivity = [];
+
+    // Billing top-5 denial reasons (§12.1 GAP-04)
+    private IReadOnlyList<DenialReasonSummary> _billingTopDenials = [];
+
+    // Admin panel state (§12.1)
+    private IReadOnlyList<ProviderVolumeSummary> _adminVolume = [];
+    private string _adminQuickUser   = string.Empty;
+    private string _adminQuickEntity = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userId = CurrentUser.UserId;
+            var tasks = new List<Task>
+            {
+                LoadSummaryAsync(userId),
+                LoadStatusAsync(),
+                LoadExpiringAsync(),
+            };
+
+            // Load role-specific panel concurrently
+            if (CurrentUser.IsInRole(Prior_Authorization_Workflow_Tracker.Constants.Roles.Specialist))
+                tasks.Add(LoadSpecialistDashAsync(userId));
+            else if (CurrentUser.IsInRole(Prior_Authorization_Workflow_Tracker.Constants.Roles.Provider))
+                tasks.Add(LoadProviderDashAsync(userId));
+            else if (CurrentUser.IsInRole(Prior_Authorization_Workflow_Tracker.Constants.Roles.Reviewer))
+                tasks.Add(LoadReviewerDashAsync(userId));
+            else if (CurrentUser.IsInRole(Prior_Authorization_Workflow_Tracker.Constants.Roles.BillingManager))
+                tasks.Add(LoadBillingDashAsync());
+            else if (CurrentUser.IsInRole(Prior_Authorization_Workflow_Tracker.Constants.Roles.Admin))
+                tasks.Add(LoadAdminVolumeAsync());
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Dashboard load failed.");
+            _error = "Unable to load dashboard. Please refresh the page.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadSummaryAsync(string userId)
+        => _summary = await ReportingSvc.GetDashboardSummaryAsync(userId);
+
+    private async Task LoadStatusAsync()
+        => _statusSummary = await ReportingSvc.GetStatusSummaryAsync();
+
+    private async Task LoadExpiringAsync()
+        => _expiring = await ReportingSvc.GetExpiringAuthorizationsAsync(daysAhead: 30);
+
+    private async Task LoadSpecialistDashAsync(string userId)
+    {
+        _specialistDash = await ReportingSvc.GetSpecialistDashboardAsync(userId);
+        _recentActivity = await ReportingSvc.GetRecentActivityAsync(userId, count: 10);
+    }
+
+    private async Task LoadProviderDashAsync(string userId)
+        => _providerDash = await ReportingSvc.GetProviderDashboardAsync(userId);
+
+    private async Task LoadReviewerDashAsync(string userId)
+        => _reviewerDash = await ReportingSvc.GetReviewerDashboardAsync(userId);
+
+    private async Task LoadBillingDashAsync()
+    {
+        _billingDash = await ReportingSvc.GetBillingDashboardAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var from  = new DateOnly(today.Year, today.Month, 1);
+        var denials = await ReportingSvc.GetDenialsByReasonAsync(from, today);
+        _billingTopDenials = denials.OrderByDescending(d => d.Count).Take(5).ToList();
+    }
+
+    private async Task LoadAdminVolumeAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var from  = new DateOnly(today.Year, today.Month, 1);
+        _adminVolume = await ReportingSvc.GetProviderVolumeAsync(from, today);
+    }
+
+    private void AdminQuickSearch()
+    {
+        var qs = new System.Text.StringBuilder("/admin/audit-log");
+        var sep = '?';
+        if (!string.IsNullOrWhiteSpace(_adminQuickUser))
+        {
+            qs.Append($"{sep}user={Uri.EscapeDataString(_adminQuickUser)}");
+            sep = '&';
+        }
+        if (!string.IsNullOrWhiteSpace(_adminQuickEntity))
+            qs.Append($"{sep}entity={Uri.EscapeDataString(_adminQuickEntity)}");
+        Nav.NavigateTo(qs.ToString());
+    }
+}

@@ -1,0 +1,23 @@
+@* StatusBadge — renders a Bootstrap badge colored by PaStatus (§16.2) *@
+@* Usage: <StatusBadge Status="PaStatus.Submitted" /> *@
+
+<span class="badge @BadgeClass">@Status.ToString()</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public PaStatus Status { get; set; }
+
+    private string BadgeClass => Status switch
+    {
+        PaStatus.Draft        => "bg-secondary",
+        PaStatus.Submitted    => "bg-primary",
+        PaStatus.UnderReview  => "bg-info text-dark",
+        PaStatus.PendingInfo  => "bg-warning text-dark",
+        PaStatus.Approved     => "bg-success",
+        PaStatus.Denied       => "bg-danger",
+        PaStatus.Withdrawn    => "badge-withdrawn",
+        PaStatus.Expired      => "bg-dark text-decoration-line-through",
+        PaStatus.Appealed     => "badge-appealed text-white",
+        _                     => "bg-secondary",
+    };
+}

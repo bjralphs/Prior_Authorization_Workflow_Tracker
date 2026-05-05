@@ -1,0 +1,23 @@
+﻿<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @if (!context.User.Identity?.IsAuthenticated ?? true)
+                {
+                    <script>window.location.href = "/Account/Login?returnUrl=" + encodeURIComponent(window.location.pathname);</script>
+                }
+                else
+                {
+                    <div class="container mt-5">
+                        <div class="alert alert-danger">
+                            <h4>Access Denied</h4>
+                            <p>You do not have permission to view this page.</p>
+                            <a href="/" class="btn btn-secondary">Go to Dashboard</a>
+                        </div>
+                    </div>
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

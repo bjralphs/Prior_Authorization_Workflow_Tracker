@@ -1,0 +1,17 @@
+@* PriorityBadge — renders a Bootstrap badge colored by PaPriority *@
+@* Usage: <PriorityBadge Priority="PaPriority.Urgent" /> *@
+
+<span class="badge @BadgeClass">@Priority.ToString()</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public PaPriority Priority { get; set; }
+
+    private string BadgeClass => Priority switch
+    {
+        PaPriority.Routine  => "bg-secondary",
+        PaPriority.Urgent   => "bg-warning text-dark",
+        PaPriority.Emergent => "bg-danger",
+        _                   => "bg-secondary",
+    };
+}

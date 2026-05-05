@@ -1,0 +1,29 @@
+# Set default behavior to auto-normalize line endings
+* text=auto
+
+# C# source files — normalize to LF in repo, checkout as CRLF on Windows
+*.cs text eol=crlf
+*.razor text eol=crlf
+*.cshtml text eol=crlf
+*.json text eol=crlf
+*.xml text eol=crlf
+*.csproj text eol=crlf
+*.sln text eol=crlf
+*.md text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# Web assets — keep LF
+*.css text eol=lf
+*.js text eol=lf
+*.html text eol=lf
+
+# Binary files — no line ending conversion
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.map binary

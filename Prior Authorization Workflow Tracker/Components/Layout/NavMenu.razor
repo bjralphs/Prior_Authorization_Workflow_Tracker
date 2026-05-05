@@ -1,0 +1,171 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Prior_Authorization_Workflow_Tracker.Constants
+@implements IDisposable
+@inject INotificationService NotifSvc
+@inject ICurrentUserService CurrentUser
+@inject NavigationManager Nav
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-semibold" href="/">PA Tracker</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+
+        <AuthorizeView>
+            <Authorized>
+
+                @* Home / Dashboard: all authenticated roles *@
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>
+                        Dashboard
+                    </NavLink>
+                </div>
+
+                @* Queue: Specialist, Provider, Reviewer, Admin *@
+                <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Provider},{Roles.Reviewer},{Roles.Admin}")"
+                               Context="_queue">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="/requests">
+                                <span class="bi bi-list-ul-nav-menu" aria-hidden="true"></span>
+                                Request Queue
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                @* Submit Request: Specialist and Admin only *@
+                <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")" Context="_sub">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="/requests/new">
+                                <span class="bi bi-plus-circle-fill-nav-menu" aria-hidden="true"></span>
+                                Submit Request
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                @* Reports: Specialist, Reviewer, Billing Manager, Admin (§8.10) *@
+                <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Reviewer},{Roles.BillingManager},{Roles.Admin}")" Context="_rep">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="/reports">
+                                <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span>
+                                Reports
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                @* Notifications: all authenticated roles *@
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/notifications">
+                        <span class="bi bi-bell-fill-nav-menu" aria-hidden="true"></span>
+                        Notifications
+                        @if (_unreadCount > 0)
+                        {
+                            <span class="badge bg-danger rounded-pill ms-1">@_unreadCount</span>
+                        }
+                    </NavLink>
+                </div>
+
+                @* Admin: Admin only *@
+                <AuthorizeView Roles="@Roles.Admin" Context="_adm">
+                    <Authorized>
+                        <hr class="nav-separator mt-2" />
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="/admin/users">
+                                <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span>
+                                User Management
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="/admin/audit-log">
+                                <span class="bi bi-journal-text-nav-menu" aria-hidden="true"></span>
+                                Audit Log
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                @* Sign Out *@
+                <hr class="nav-separator mt-2" />
+                <div class="nav-item px-3">
+                    <form method="post" action="/Account/Logout">
+                        <AntiforgeryToken />
+                        <button type="submit" class="nav-link btn btn-link text-start w-100 p-0">
+                            <span class="bi bi-box-arrow-right-nav-menu" aria-hidden="true"></span>
+                            Sign Out
+                        </button>
+                    </form>
+                </div>
+
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/Account/Login">
+                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span>
+                        Sign In
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </nav>
+</div>
+
+@code {
+    private int _unreadCount;
+    private Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Refresh on every navigation so the badge snaps to 0 when the user
+        // leaves /notifications after dismissing items (§16.1).
+        Nav.LocationChanged += OnLocationChanged;
+
+        await RefreshCountAsync();
+        // Also poll every 30 s so new notifications arriving while idle are caught.
+        _refreshTimer = new Timer(
+            _ => InvokeAsync(RefreshCountAsync),
+            state: null,
+            dueTime: TimeSpan.FromSeconds(30),
+            period: TimeSpan.FromSeconds(30));
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+        => _ = InvokeAsync(RefreshCountAsync);
+
+    private async Task RefreshCountAsync()
+    {
+        var userId = CurrentUser.UserId;
+        if (string.IsNullOrEmpty(userId)) return;
+        try
+        {
+            var count = await NotifSvc.GetUnreadCountAsync(userId);
+            if (count != _unreadCount)
+            {
+                _unreadCount = count;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // Notification count is non-critical; silently ignore failures
+        }
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        _refreshTimer?.Dispose();
+    }
+}
+
