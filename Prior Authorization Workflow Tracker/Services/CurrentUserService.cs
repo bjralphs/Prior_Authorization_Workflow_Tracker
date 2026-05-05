@@ -50,8 +50,12 @@ public sealed class CurrentUserService : ICurrentUserService
         get
         {
             if (_isActive.HasValue) return _isActive.Value;
-            // Synchronous lookup acceptable here — called infrequently per circuit
-            var user = _userManager.FindByIdAsync(UserId).GetAwaiter().GetResult();
+            // Use Task.Run to escape the Blazor circuit's SynchronizationContext.
+            // Calling FindByIdAsync().GetAwaiter().GetResult() directly on the circuit
+            // thread deadlocks: EF Core continuations post back to the blocked circuit
+            // sync context and can never run. Task.Run executes on the thread pool
+            // (no custom SynchronizationContext), so continuations run freely.
+            var user = Task.Run(async () => await _userManager.FindByIdAsync(UserId)).GetAwaiter().GetResult();
             _isActive = user?.IsActive ?? false;
             return _isActive.Value;
         }
@@ -77,7 +81,9 @@ public sealed class CurrentUserService : ICurrentUserService
 
         try
         {
-            var authState = _authStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
+            // Use Task.Run to escape the Blazor circuit's SynchronizationContext —
+            // same deadlock risk as IsActive if called from the circuit thread.
+            var authState = Task.Run(async () => await _authStateProvider.GetAuthenticationStateAsync()).GetAwaiter().GetResult();
             _user = authState.User;
         }
         catch (InvalidOperationException)
