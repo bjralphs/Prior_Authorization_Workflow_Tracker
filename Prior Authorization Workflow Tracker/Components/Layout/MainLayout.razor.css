@@ -23,12 +23,18 @@ article.content {
 
 .sidebar {
     position: relative;
-    background:
-        linear-gradient(145deg, #e8bd63 0%, #d6a04a 52%, #b97c2f 100%);
+    background-color: #dde4ed;
+    background-image:
+        /* Major grid lines — every 50px */
+        repeating-linear-gradient(0deg,   transparent, transparent 49px, rgba(90,120,170,0.22) 49px, rgba(90,120,170,0.22) 50px),
+        repeating-linear-gradient(90deg,  transparent, transparent 49px, rgba(90,120,170,0.22) 49px, rgba(90,120,170,0.22) 50px),
+        /* Minor grid lines — every 10px */
+        repeating-linear-gradient(0deg,   transparent, transparent  9px, rgba(110,140,190,0.10)  9px, rgba(110,140,190,0.10) 10px),
+        repeating-linear-gradient(90deg,  transparent, transparent  9px, rgba(110,140,190,0.10)  9px, rgba(110,140,190,0.10) 10px);
     box-shadow:
-        0 34px 58px rgba(43, 26, 7, 0.30),
-        inset 0 1px 0 rgba(255, 255, 255, 0.22),
-        inset 0 -14px 24px rgba(84, 48, 10, 0.18);
+        0 16px 36px rgba(60, 80, 120, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.40),
+        inset 0 -8px 18px rgba(60, 80, 130, 0.08);
     overflow: visible;
     isolation: isolate;
 }
@@ -38,15 +44,13 @@ article.content {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    /* Matte surface noise — tiny dots break the flat grid into paper */
     background-image:
-        radial-gradient(var(--paper-dot-dark) 0.45px, transparent 0.75px),
-        radial-gradient(var(--paper-dot-light) 0.45px, transparent 0.75px),
-        repeating-linear-gradient(8deg, transparent 0 5px, var(--paper-fiber-mid) 5px 6px, transparent 6px 12px),
-        repeating-linear-gradient(97deg, transparent 0 6px, var(--paper-fiber-dark) 6px 7px, transparent 7px 14px),
-        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(102,67,20,0.05));
-    background-size: 8px 8px, 14px 14px, 100% 100%, 100% 100%, 100% 100%;
-    background-position: 0 0, 5px 6px, 0 0, 0 0, 0 0;
-    opacity: 0.24;
+        radial-gradient(rgba(100,130,180,0.18) 0.5px, transparent 0.9px),
+        radial-gradient(rgba(255,255,255,0.30) 0.4px, transparent 0.8px);
+    background-size: 6px 6px, 11px 11px;
+    background-position: 0 0, 4px 5px;
+    opacity: 0.55;
     mix-blend-mode: multiply;
     border-radius: inherit;
     z-index: 0;
@@ -57,8 +61,8 @@ article.content {
     position: absolute;
     inset: 9px;
     border-radius: 26px;
-    border: 1px solid rgba(91, 57, 16, 0.22);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(90, 120, 170, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.30);
     pointer-events: none;
     z-index: 1;
 }
