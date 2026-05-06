@@ -32,21 +32,27 @@
                             <ValidationMessage For="() => _model.PatientMrn" class="text-danger small" />
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label">Patient Name</label>
+                            <label class="form-label">Patient Name <span class="text-danger">*</span></label>
                             <InputText class="form-control" @bind-Value="_model.PatientName" placeholder="Last, First" />
+                            <ValidationMessage For="() => _model.PatientName" class="text-danger small" />
                         </div>
                     </div>
 
                     <div class="row g-3 mb-4">
                         <div class="col-sm-6">
-                            <label class="form-label">Date of Birth</label>
-                            <input type="date" class="form-control"
+                            <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control @(_dobError is not null ? "is-invalid" : "")"
                                    value="@_dobStr"
                                    @onchange="e => ParseDob(e.Value?.ToString())" />
+                            @if (_dobError is not null)
+                            {
+                                <div class="invalid-feedback">@_dobError</div>
+                            }
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label">Diagnosis Code (ICD-10)</label>
+                            <label class="form-label">Diagnosis Code (ICD-10) <span class="text-danger">*</span></label>
                             <InputText class="form-control" @bind-Value="_model.DiagnosisCode" placeholder="e.g. M17.11" />
+                            <ValidationMessage For="() => _model.DiagnosisCode" class="text-danger small" />
                         </div>
                     </div>
 
@@ -65,10 +71,7 @@
                                     <option value="@plan.ID">@plan.PlanName</option>
                                 }
                             </InputSelect>
-                            @if (_submitAttempted && _model.InsurancePlanID == 0)
-                            {
-                                <div class="text-danger small">Insurance plan is required.</div>
-                            }
+                            <ValidationMessage For="() => _model.InsurancePlanID" class="text-danger small" />
                         </div>
                         <div class="col-sm-6">
                             <label class="form-label">Procedure Code <span class="text-danger">*</span></label>
@@ -79,16 +82,13 @@
                                     <option value="@(code.ID)">@(code.Code) — @(code.Description)</option>
                                 }
                             </InputSelect>
-                            @if (_submitAttempted && _model.ProcedureCodeID == 0)
-                            {
-                                <div class="text-danger small">Procedure code is required.</div>
-                            }
+                            <ValidationMessage For="() => _model.ProcedureCodeID" class="text-danger small" />
                         </div>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6">
-                            <label class="form-label">Treating Provider</label>
+                            <label class="form-label">Treating Provider <span class="text-danger">*</span></label>
                             <InputSelect class="form-select" @bind-Value="_model.ProviderID">
                                 <option value="">— Select provider —</option>
                                 @foreach (var p in _providers)
@@ -96,10 +96,12 @@
                                     <option value="@p.Id">@(p.FullName ?? p.Email ?? p.Id)</option>
                                 }
                             </InputSelect>
+                            <ValidationMessage For="() => _model.ProviderID" class="text-danger small" />
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label">Units Requested</label>
+                            <label class="form-label">Units Requested <span class="text-danger">*</span></label>
                             <InputNumber class="form-control" @bind-Value="_model.ApprovedUnitsRequested" min="1" max="999" />
+                            <ValidationMessage For="() => _model.ApprovedUnitsRequested" class="text-danger small" />
                         </div>
                     </div>
 
@@ -115,12 +117,13 @@
 
                     <div class="mb-4">
                         <label class="form-label">
-                            Clinical Justification
+                            Clinical Justification <span class="text-danger">*</span>
                             <span class="text-muted small">(minimum 50 characters for submission)</span>
                         </label>
                         <InputTextArea class="form-control" rows="5" @bind-Value="_model.ClinicalJustification"
                                        placeholder="Describe the medical necessity..." />
                         <div class="text-muted small mt-1">@(_model.ClinicalJustification?.Length ?? 0) characters</div>
+                        <ValidationMessage For="() => _model.ClinicalJustification" class="text-danger small" />
                     </div>
 
                     @* ── Error message ─────────────────────────────────────── *@
@@ -183,6 +186,7 @@
 @code {
     private readonly CreatePaRequestModel _model = new();
     private string _dobStr = string.Empty;
+    private string? _dobError;
 
     private List<InsurancePlan> _insurancePlans = [];
     private List<ProcedureCode> _procedureCodes = [];
@@ -190,7 +194,6 @@
 
     private bool _saving;
     private bool _submitting;
-    private bool _submitAttempted;
     private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
@@ -233,7 +236,15 @@
     {
         _dobStr = value ?? string.Empty;
         if (DateTime.TryParse(value, out var dt))
+        {
             _model.PatientDob = dt;
+            _dobError = null;
+        }
+        else
+        {
+            _model.PatientDob = default;
+            _dobError = string.IsNullOrEmpty(value) ? null : "Enter a valid date.";
+        }
     }
 
     // ── Save Draft ────────────────────────────────────────────────────────────
@@ -269,12 +280,12 @@
     // ── Submit for review ─────────────────────────────────────────────────────
     private async Task HandleSubmit()
     {
-        _submitAttempted = true;
         _errorMessage = null;
 
-        if (_model.InsurancePlanID == 0 || _model.ProcedureCodeID == 0)
+        // Date of Birth is parsed outside the EditContext; validate manually.
+        if (_model.PatientDob == default)
         {
-            _errorMessage = "Please select an Insurance Plan and Procedure Code.";
+            _dobError = "Date of birth is required.";
             return;
         }
 
