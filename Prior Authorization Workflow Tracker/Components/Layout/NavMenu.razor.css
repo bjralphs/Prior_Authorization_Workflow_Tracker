@@ -1,3 +1,406 @@
+﻿/* =====================================================
+   MANILA FOLDER NAV — NavMenu scoped styles
+   ===================================================== */
+
+:root {
+    --ink: #2a241b;
+    --ink-soft: rgba(42, 36, 27, 0.92);
+    --paper-fiber-dark: rgba(100, 66, 20, 0.10);
+    --paper-fiber-mid: rgba(122, 81, 24, 0.06);
+    --paper-dot-dark: rgba(86, 55, 16, 0.16);
+    --paper-dot-light: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Header envelope ─────────────────────────────── */
+
+.header-envelope {
+    position: relative;
+    z-index: 30;
+    height: 180px;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(150deg, #f7e2af 0%, #efcf88 58%, #e0ae58 100%);
+    border: 1px solid rgba(103, 66, 22, 0.20);
+    box-shadow:
+        0 10px 16px rgba(67, 41, 10, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        inset 0 -7px 10px rgba(84, 50, 10, 0.08);
+}
+
+.header-envelope::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(var(--paper-dot-dark) 0.45px, transparent 0.75px),
+        radial-gradient(var(--paper-dot-light) 0.45px, transparent 0.75px),
+        repeating-linear-gradient(8deg, transparent 0 5px, var(--paper-fiber-mid) 5px 6px, transparent 6px 12px),
+        repeating-linear-gradient(97deg, transparent 0 6px, var(--paper-fiber-dark) 6px 7px, transparent 7px 14px),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(102,67,20,0.05));
+    background-size: 8px 8px, 14px 14px, 100% 100%, 100% 100%, 100% 100%;
+    background-position: 0 0, 5px 6px, 0 0, 0 0, 0 0;
+    opacity: 0.34;
+    mix-blend-mode: multiply;
+}
+
+.header-envelope::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(110, 72, 22, 0.10);
+    pointer-events: none;
+}
+
+.header-pocket {
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    height: 58px;
+    border-left: 1px solid rgba(103, 66, 22, 0.26);
+    border-right: 1px solid rgba(103, 66, 22, 0.26);
+    border-bottom: 1px solid rgba(103, 66, 22, 0.26);
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(103, 66, 22, 0.05));
+    pointer-events: none;
+    z-index: 2;
+}
+
+.header-pocket::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    top: 0;
+    height: 1px;
+    background: rgba(103, 66, 22, 0.30);
+    border-radius: 999px;
+}
+
+.stamp {
+    position: absolute;
+    top: 28px;
+    left: 26px;
+    padding: 18px 34px;
+    border: 3px solid rgba(63, 58, 45, 0.76);
+    border-radius: 6px;
+    transform: rotate(-7deg);
+    color: rgba(63, 58, 45, 0.86);
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.65px;
+    font-family: Georgia, "Times New Roman", serif;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+        inset 0 0 0 3px rgba(63, 58, 45, 0.10),
+        0 1px 0 rgba(255, 255, 255, 0.14);
+    z-index: 4;
+}
+
+.stamp::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border: 2px solid rgba(63, 58, 45, 0.44);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* ── Nav list ─────────────────────────────────────── */
+
+.nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    z-index: 20;
+}
+
+.nav-item {
+    --accent: #d96c55;
+    position: relative;
+    height: 122px;
+    margin-top: 0;
+}
+
+.nav-item + .nav-item {
+    margin-top: -18px;
+}
+
+.nav-item:nth-child(1) { z-index: 23; }
+.nav-item:nth-child(2) { z-index: 24; }
+.nav-item:nth-child(3) { z-index: 25; }
+.nav-item:nth-child(4) { z-index: 26; }
+.nav-item:nth-child(5) { z-index: 27; }
+.nav-item:nth-child(6) { z-index: 28; }
+.nav-item:nth-child(7) { z-index: 29; }
+.nav-item:nth-child(8) { z-index: 30; }
+
+/* ── Folder pieces ────────────────────────────────── */
+
+.folder-envelope {
+    position: absolute;
+    inset: 0;
+    height: 116px;
+    border-radius: 9px 24px 24px 9px;
+    background: linear-gradient(150deg, #f7dfaa 0%, #efc674 58%, #dfaa4f 100%);
+    box-shadow:
+        0 14px 20px rgba(48, 30, 8, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -6px 10px rgba(99, 58, 10, 0.11);
+    overflow: hidden;
+}
+
+.folder-envelope::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(var(--paper-dot-dark) 0.45px, transparent 0.75px),
+        radial-gradient(var(--paper-dot-light) 0.45px, transparent 0.75px),
+        repeating-linear-gradient(8deg, transparent 0 5px, var(--paper-fiber-mid) 5px 6px, transparent 6px 12px),
+        repeating-linear-gradient(97deg, transparent 0 6px, var(--paper-fiber-dark) 6px 7px, transparent 7px 14px),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(102,67,20,0.05));
+    background-size: 8px 8px, 14px 14px, 100% 100%, 100% 100%, 100% 100%;
+    background-position: 0 0, 5px 6px, 0 0, 0 0, 0 0;
+    opacity: 0.34;
+    mix-blend-mode: multiply;
+}
+
+.color-sheet {
+    position: absolute;
+    top: 11px;
+    left: 7px;
+    right: 0;
+    height: 174px;
+    border-radius: 10px 26px 26px 10px;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 36%),
+        var(--accent);
+    box-shadow:
+        0 11px 18px rgba(47, 29, 8, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset -10px 0 16px rgba(0, 0, 0, 0.09);
+    overflow: hidden;
+    z-index: 2;
+    transition:
+        transform 220ms cubic-bezier(.2, .8, .2, 1),
+        box-shadow 220ms cubic-bezier(.2, .8, .2, 1);
+    will-change: transform;
+}
+
+.color-sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(var(--paper-dot-dark) 0.45px, transparent 0.75px),
+        radial-gradient(var(--paper-dot-light) 0.45px, transparent 0.75px),
+        repeating-linear-gradient(8deg, transparent 0 5px, var(--paper-fiber-mid) 5px 6px, transparent 6px 12px),
+        repeating-linear-gradient(97deg, transparent 0 6px, var(--paper-fiber-dark) 6px 7px, transparent 7px 14px),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(102,67,20,0.05));
+    background-size: 8px 8px, 14px 14px, 100% 100%, 100% 100%, 100% 100%;
+    background-position: 0 0, 5px 6px, 0 0, 0 0, 0 0;
+    opacity: 0.34;
+    mix-blend-mode: multiply;
+}
+
+.nav-item:hover .color-sheet,
+.nav-item:focus-within .color-sheet {
+    transform: translateX(36px);
+    box-shadow:
+        0 17px 24px rgba(47, 29, 8, 0.27),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset -10px 0 16px rgba(0, 0, 0, 0.09);
+}
+
+/* Active page: keep color-sheet slid out */
+.nav-item:has(.folder-link.active) .color-sheet {
+    transform: translateX(36px);
+    box-shadow:
+        0 17px 24px rgba(47, 29, 8, 0.27),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset -10px 0 16px rgba(0, 0, 0, 0.09);
+}
+
+/* ── Folder link (anchor + button reset) ─────────── */
+
+.folder-link {
+    position: absolute;
+    top: 4px;
+    left: 30px;
+    width: 356px;
+    height: 108px;
+    display: block;
+    text-decoration: none;
+    color: var(--ink);
+    z-index: 3;
+}
+
+.folder-link:focus {
+    outline: none;
+}
+
+/* Sign Out uses a <button> — reset button styles */
+button.folder-link {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+/* ── Folder SVG shapes ────────────────────────────── */
+
+.folder-svg {
+    position: absolute;
+    inset: 0;
+    width: 356px;
+    height: 108px;
+    overflow: visible;
+    filter: drop-shadow(0 12px 11px rgba(48, 30, 8, 0.22));
+}
+
+.folder-shape {
+    fill: url(#manilaGradient);
+    stroke: rgba(120, 76, 23, 0.24);
+    stroke-width: 1;
+}
+
+.folder-highlight {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.24);
+    stroke-width: 1;
+}
+
+.folder-bottom-shadow {
+    fill: none;
+    stroke: rgba(98, 58, 10, 0.12);
+    stroke-width: 3;
+}
+
+.folder-pocket-shadow {
+    fill: url(#pocketShadowGradient);
+    opacity: 0.75;
+}
+
+.folder-grain {
+    fill: url(#paperGrain);
+    opacity: 0.22;
+    mix-blend-mode: multiply;
+}
+
+/* ── Nav content layout ───────────────────────────── */
+
+.nav-content {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 50px 1px 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 0 54px 0 24px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+    opacity: 0.96;
+    filter:
+        drop-shadow(0 1px 0 rgba(255, 255, 255, 0.18))
+        drop-shadow(0 1px 1px rgba(60, 35, 8, 0.06));
+}
+
+.icon svg {
+    width: 40px;
+    height: 40px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.divider {
+    width: 1px;
+    height: 50px;
+    background: linear-gradient(to bottom, transparent, rgba(105, 69, 25, 0.26), transparent);
+}
+
+.label {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: "Trebuchet MS", "Arial Narrow", Arial, sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: var(--ink-soft);
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.10),
+        0 0 1px rgba(70, 48, 18, 0.06);
+}
+
+/* Notification badge inside label */
+.label .badge {
+    font-size: 13px;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+/* ── Accent colours ───────────────────────────────── */
+
+.dashboard     { --accent: #d96c55; }
+.queue         { --accent: #2d8f8c; }
+.submit        { --accent: #5a7fc5; }
+.reports       { --accent: #c57a49; }
+.notifications { --accent: #7f9962; }
+.users         { --accent: #3d86b8; }
+.audit         { --accent: #8060a8; }
+.signout       { --accent: #a96479; }
+
+/* ── Sign-out tall variant ────────────────────────── */
+
+.nav-item.signout {
+    height: 196px;
+}
+
+.nav-item.signout .folder-envelope {
+    height: 196px;
+}
+
+.nav-item.signout .folder-link {
+    top: 4px;
+    height: 192px;
+}
+
+.nav-item.signout .folder-svg {
+    height: 192px;
+}
+
+.nav-item.signout .nav-content {
+    top: 0;
+    bottom: auto;
+    height: 108px;
+}
+
+/* ── Mobile: hide nav, show toggle ───────────────── */
+
 .navbar-toggler {
     appearance: none;
     cursor: pointer;
@@ -8,77 +411,11 @@
     top: 0.5rem;
     right: 1rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.75rem rgba(255, 255, 255, 0.1);
+    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255%2c255%2c255%2c0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center/1.75rem rgba(255, 255, 255, 0.1);
 }
 
 .navbar-toggler:checked {
     background-color: rgba(255, 255, 255, 0.5);
-}
-
-.top-row {
-    min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
-}
-
-.navbar-brand {
-    font-size: 1.1rem;
-}
-
-.bi {
-    display: inline-block;
-    position: relative;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-right: 0.75rem;
-    top: -1px;
-    background-size: cover;
-}
-
-.bi-house-door-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-house-door-fill' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5Z'/%3E%3C/svg%3E");
-}
-
-.bi-plus-square-fill-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-plus-square-fill' viewBox='0 0 16 16'%3E%3Cpath d='M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm6.5 4.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3a.5.5 0 0 1 1 0z'/%3E%3C/svg%3E");
-}
-
-.bi-list-nested-nav-menu {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-list-nested' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M4.5 11.5A.5.5 0 0 1 5 11h10a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 3 7h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm-2-4A.5.5 0 0 1 1 3h10a.5.5 0 0 1 0 1H1a.5.5 0 0 1-.5-.5z'/%3E%3C/svg%3E");
-}
-
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
-
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item ::deep .nav-link {
-        color: #d7d7d7;
-        background: none;
-        border: none;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-        width: 100%;
-    }
-
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.37);
-    color: white;
-}
-
-.nav-item ::deep .nav-link:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
 }
 
 .nav-scrollable {
@@ -95,11 +432,8 @@
     }
 
     .nav-scrollable {
-        /* Never collapse the sidebar for wide screens */
         display: block;
-
-        /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 3.5rem);
+        height: calc(100vh - 200px);
         overflow-y: auto;
     }
 }

@@ -5,120 +5,321 @@
 @inject ICurrentUserService CurrentUser
 @inject NavigationManager Nav
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-semibold" href="/">PA Tracker</a>
-    </div>
-</div>
+@* SVG defs required by all folder <use href="#..."> references *@
+<svg width="0" height="0" aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;">
+    <defs>
+        <linearGradient id="manilaGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stop-color="#f5dfab" />
+            <stop offset="55%"  stop-color="#efcc82" />
+            <stop offset="100%" stop-color="#e4b460" />
+        </linearGradient>
+        <linearGradient id="pocketShadowGradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="rgba(96,58,12,0)" />
+            <stop offset="55%"  stop-color="rgba(96,58,12,0.16)" />
+            <stop offset="100%" stop-color="rgba(96,58,12,0)" />
+        </linearGradient>
+        <pattern id="paperGrain" width="9" height="9" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.45" fill="rgba(77,48,15,0.25)" />
+            <circle cx="6" cy="5" r="0.35" fill="rgba(255,255,255,0.34)" />
+            <circle cx="3" cy="7" r="0.35" fill="rgba(77,48,15,0.14)" />
+        </pattern>
+        <path id="folderFacePath"
+              d="M0 8 Q0 0 8 0 H314 C333 0 344 4 344 20 V31 C344 39 356 38 356 48 V108 H0 Z" />
+        <path id="folderHighlightPath"
+              d="M8 1 H312 C331 1 342 5 342 20" />
+        <path id="folderBottomShadowPath"
+              d="M6 106 H350" />
+        <path id="folderPocketShadowPath"
+              d="M312 4 C329 5 340 9 340 20 V31 C340 42 352 39 352 48 V106 H322 C326 84 326 25 312 4 Z" />
+        <path id="folderFacePathTall"
+              d="M0 8 Q0 0 8 0 H314 C333 0 344 4 344 20 V31 C344 39 356 38 356 48 V192 H0 Z" />
+        <path id="folderBottomShadowPathTall"
+              d="M6 190 H350" />
+        <path id="folderPocketShadowPathTall"
+              d="M312 4 C329 5 340 9 340 20 V31 C340 42 352 39 352 48 V190 H322 C326 84 326 25 312 4 Z" />
+    </defs>
+</svg>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
+<div class="header-envelope">
+    <div class="stamp">PA Tracker</div>
+    <div class="header-pocket"></div>
+</div>
+
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
+    <ul class="nav">
 
         <AuthorizeView>
             <Authorized>
 
-                @* Home / Dashboard: all authenticated roles *@
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span>
-                        Dashboard
+                @* Dashboard: all authenticated roles *@
+                <li class="nav-item dashboard">
+                    <div class="folder-envelope"></div>
+                    <div class="color-sheet"></div>
+                    <NavLink class="folder-link" href="" Match="NavLinkMatch.All">
+                        <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                            <use href="#folderFacePath" class="folder-shape"></use>
+                            <use href="#folderHighlightPath" class="folder-highlight"></use>
+                            <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                            <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                            <use href="#folderFacePath" class="folder-grain"></use>
+                        </svg>
+                        <span class="nav-content">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                </svg>
+                            </span>
+                            <span class="divider"></span>
+                            <span class="label">Dashboard</span>
+                        </span>
                     </NavLink>
-                </div>
+                </li>
 
-                @* Queue: Specialist, Provider, Reviewer, Admin *@
-                <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Provider},{Roles.Reviewer},{Roles.Admin}")"
-                               Context="_queue">
+                @* Request Queue: Specialist, Provider, Reviewer, Admin *@
+                <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Provider},{Roles.Reviewer},{Roles.Admin}")" Context="_queue">
                     <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="/requests">
-                                <span class="bi bi-list-ul-nav-menu" aria-hidden="true"></span>
-                                Request Queue
+                        <li class="nav-item queue">
+                            <div class="folder-envelope"></div>
+                            <div class="color-sheet"></div>
+                            <NavLink class="folder-link" href="/requests">
+                                <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                                    <use href="#folderFacePath" class="folder-shape"></use>
+                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                                    <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                </svg>
+                                <span class="nav-content">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24">
+                                            <rect x="5" y="3" width="14" height="18" rx="2"></rect>
+                                            <line x1="8" y1="8" x2="16" y2="8"></line>
+                                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                                            <line x1="8" y1="16" x2="13" y2="16"></line>
+                                        </svg>
+                                    </span>
+                                    <span class="divider"></span>
+                                    <span class="label">Request Queue</span>
+                                </span>
                             </NavLink>
-                        </div>
+                        </li>
                     </Authorized>
                 </AuthorizeView>
 
-                @* Submit Request: Specialist and Admin only *@
+                @* Submit Request: Specialist, Admin *@
                 <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")" Context="_sub">
                     <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="/requests/new">
-                                <span class="bi bi-plus-circle-fill-nav-menu" aria-hidden="true"></span>
-                                Submit Request
+                        <li class="nav-item submit">
+                            <div class="folder-envelope"></div>
+                            <div class="color-sheet"></div>
+                            <NavLink class="folder-link" href="/requests/new">
+                                <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                                    <use href="#folderFacePath" class="folder-shape"></use>
+                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                                    <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                </svg>
+                                <span class="nav-content">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                                        </svg>
+                                    </span>
+                                    <span class="divider"></span>
+                                    <span class="label">Submit Request</span>
+                                </span>
                             </NavLink>
-                        </div>
+                        </li>
                     </Authorized>
                 </AuthorizeView>
 
-                @* Reports: Specialist, Reviewer, Billing Manager, Admin (§8.10) *@
+                @* Reports: Specialist, Reviewer, Billing Manager, Admin *@
                 <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Reviewer},{Roles.BillingManager},{Roles.Admin}")" Context="_rep">
                     <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="/reports">
-                                <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span>
-                                Reports
+                        <li class="nav-item reports">
+                            <div class="folder-envelope"></div>
+                            <div class="color-sheet"></div>
+                            <NavLink class="folder-link" href="/reports">
+                                <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                                    <use href="#folderFacePath" class="folder-shape"></use>
+                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                                    <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                </svg>
+                                <span class="nav-content">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24">
+                                            <line x1="4" y1="20" x2="20" y2="20"></line>
+                                            <rect x="5" y="11" width="3" height="7"></rect>
+                                            <rect x="11" y="7" width="3" height="11"></rect>
+                                            <rect x="17" y="4" width="3" height="14"></rect>
+                                        </svg>
+                                    </span>
+                                    <span class="divider"></span>
+                                    <span class="label">Reports</span>
+                                </span>
                             </NavLink>
-                        </div>
+                        </li>
                     </Authorized>
                 </AuthorizeView>
 
                 @* Notifications: all authenticated roles *@
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="/notifications">
-                        <span class="bi bi-bell-fill-nav-menu" aria-hidden="true"></span>
-                        Notifications
-                        @if (_unreadCount > 0)
-                        {
-                            <span class="badge bg-danger rounded-pill ms-1">@_unreadCount</span>
-                        }
+                <li class="nav-item notifications">
+                    <div class="folder-envelope"></div>
+                    <div class="color-sheet"></div>
+                    <NavLink class="folder-link" href="/notifications">
+                        <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                            <use href="#folderFacePath" class="folder-shape"></use>
+                            <use href="#folderHighlightPath" class="folder-highlight"></use>
+                            <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                            <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                            <use href="#folderFacePath" class="folder-grain"></use>
+                        </svg>
+                        <span class="nav-content">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                                    <path d="M10 21h4"></path>
+                                </svg>
+                            </span>
+                            <span class="divider"></span>
+                            <span class="label">
+                                Notifications
+                                @if (_unreadCount > 0)
+                                {
+                                    <span class="badge bg-danger rounded-pill">@_unreadCount</span>
+                                }
+                            </span>
+                        </span>
                     </NavLink>
-                </div>
+                </li>
 
-                @* Admin: Admin only *@
+                @* Admin-only items *@
                 <AuthorizeView Roles="@Roles.Admin" Context="_adm">
                     <Authorized>
-                        <hr class="nav-separator mt-2" />
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="/admin/users">
-                                <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span>
-                                User Management
+                        <li class="nav-item users">
+                            <div class="folder-envelope"></div>
+                            <div class="color-sheet"></div>
+                            <NavLink class="folder-link" href="/admin/users">
+                                <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                                    <use href="#folderFacePath" class="folder-shape"></use>
+                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                                    <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                </svg>
+                                <span class="nav-content">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24">
+                                            <circle cx="9" cy="8" r="4"></circle>
+                                            <path d="M2.5 21c1.6-4 4-6 6.5-6s4.9 2 6.5 6"></path>
+                                            <circle cx="17" cy="9" r="3"></circle>
+                                            <path d="M16 15c2.5.4 4.3 2.3 5.5 6"></path>
+                                        </svg>
+                                    </span>
+                                    <span class="divider"></span>
+                                    <span class="label">User Management</span>
+                                </span>
                             </NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="/admin/audit-log">
-                                <span class="bi bi-journal-text-nav-menu" aria-hidden="true"></span>
-                                Audit Log
+                        </li>
+
+                        <li class="nav-item audit">
+                            <div class="folder-envelope"></div>
+                            <div class="color-sheet"></div>
+                            <NavLink class="folder-link" href="/admin/audit-log">
+                                <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                                    <use href="#folderFacePath" class="folder-shape"></use>
+                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                                    <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                </svg>
+                                <span class="nav-content">
+                                    <span class="icon">
+                                        <svg viewBox="0 0 24 24">
+                                            <rect x="6" y="4" width="12" height="17" rx="2"></rect>
+                                            <path d="M9 4a3 3 0 0 1 6 0"></path>
+                                            <line x1="9" y1="10" x2="15" y2="10"></line>
+                                            <line x1="9" y1="14" x2="15" y2="14"></line>
+                                            <line x1="9" y1="18" x2="13" y2="18"></line>
+                                        </svg>
+                                    </span>
+                                    <span class="divider"></span>
+                                    <span class="label">Audit Log</span>
+                                </span>
                             </NavLink>
-                        </div>
+                        </li>
                     </Authorized>
                 </AuthorizeView>
 
                 @* Sign Out *@
-                <hr class="nav-separator mt-2" />
-                <div class="nav-item px-3">
+                <li class="nav-item signout">
+                    <div class="folder-envelope"></div>
+                    <div class="color-sheet"></div>
                     <form method="post" action="/Account/Logout">
                         <AntiforgeryToken />
-                        <button type="submit" class="nav-link btn btn-link text-start w-100 p-0">
-                            <span class="bi bi-box-arrow-right-nav-menu" aria-hidden="true"></span>
-                            Sign Out
+                        <button type="submit" class="folder-link">
+                            <svg class="folder-svg" viewBox="0 0 356 192" aria-hidden="true">
+                                <use href="#folderFacePathTall" class="folder-shape"></use>
+                                <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                <use href="#folderBottomShadowPathTall" class="folder-bottom-shadow"></use>
+                                <use href="#folderPocketShadowPathTall" class="folder-pocket-shadow"></use>
+                                <use href="#folderFacePathTall" class="folder-grain"></use>
+                            </svg>
+                            <span class="nav-content">
+                                <span class="icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path>
+                                        <path d="M15 8l4 4-4 4"></path>
+                                        <line x1="19" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                </span>
+                                <span class="divider"></span>
+                                <span class="label">Sign Out</span>
+                            </span>
                         </button>
                     </form>
-                </div>
+                </li>
 
             </Authorized>
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="/Account/Login">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span>
-                        Sign In
+                <li class="nav-item dashboard">
+                    <div class="folder-envelope"></div>
+                    <div class="color-sheet"></div>
+                    <NavLink class="folder-link" href="/Account/Login">
+                        <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
+                            <use href="#folderFacePath" class="folder-shape"></use>
+                            <use href="#folderHighlightPath" class="folder-highlight"></use>
+                            <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
+                            <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
+                            <use href="#folderFacePath" class="folder-grain"></use>
+                        </svg>
+                        <span class="nav-content">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                                    <polyline points="10 17 15 12 10 7"></polyline>
+                                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                                </svg>
+                            </span>
+                            <span class="divider"></span>
+                            <span class="label">Sign In</span>
+                        </span>
                     </NavLink>
-                </div>
+                </li>
             </NotAuthorized>
         </AuthorizeView>
 
-    </nav>
+    </ul>
 </div>
 
 @code {
