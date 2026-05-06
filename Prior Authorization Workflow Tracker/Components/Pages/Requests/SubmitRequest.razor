@@ -263,7 +263,9 @@
         try
         {
             var request = await PaRequestSvc.CreateDraftAsync(_model);
-            Toast.ShowSuccess($"Draft saved — {request.RequestNumber}");
+            Toast.ShowSuccess($"Draft saved — {request.RequestNumber}",
+                linkText: "See request drafts",
+                linkUrl: "/requests?status=Draft");
             Nav.NavigateTo($"/requests/{request.ID}/edit");
         }
         catch (Exception ex)

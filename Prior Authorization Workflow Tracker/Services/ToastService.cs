@@ -14,9 +14,17 @@ public sealed class ToastService
     public IReadOnlyList<ToastMessage> Messages => _messages;
 
     /// <summary>Displays a toast with the specified level and message.</summary>
-    public void Show(string message, ToastLevel level = ToastLevel.Info, int durationMs = 4000)
+    /// <remarks>Use the ShowSuccess/ShowError/ShowWarning overloads — this base overload is called internally.</remarks>
+
+    public void ShowSuccess(string message, string? linkText = null, string? linkUrl = null)
+        => Show(message, ToastLevel.Success, linkText: linkText, linkUrl: linkUrl);
+    public void ShowError(string message)   => Show(message, ToastLevel.Error, durationMs: 8000);
+    public void ShowWarning(string message) => Show(message, ToastLevel.Warning);
+
+    public void Show(string message, ToastLevel level = ToastLevel.Info, int durationMs = 4000,
+        string? linkText = null, string? linkUrl = null)
     {
-        var toast = new ToastMessage(Guid.NewGuid(), message, level, durationMs);
+        var toast = new ToastMessage(Guid.NewGuid(), message, level, durationMs, linkText, linkUrl);
         _messages.Add(toast);
         OnChange?.Invoke();
 
@@ -27,10 +35,6 @@ public sealed class ToastService
         });
     }
 
-    public void ShowSuccess(string message) => Show(message, ToastLevel.Success);
-    public void ShowError(string message)   => Show(message, ToastLevel.Error, durationMs: 8000);
-    public void ShowWarning(string message) => Show(message, ToastLevel.Warning);
-
     public void Dismiss(Guid id)
     {
         var removed = _messages.RemoveAll(m => m.Id == id);
@@ -38,6 +42,12 @@ public sealed class ToastService
     }
 }
 
-public sealed record ToastMessage(Guid Id, string Message, ToastLevel Level, int DurationMs);
+public sealed record ToastMessage(
+    Guid Id,
+    string Message,
+    ToastLevel Level,
+    int DurationMs,
+    string? LinkText = null,
+    string? LinkUrl  = null);
 
 public enum ToastLevel { Info, Success, Warning, Error }

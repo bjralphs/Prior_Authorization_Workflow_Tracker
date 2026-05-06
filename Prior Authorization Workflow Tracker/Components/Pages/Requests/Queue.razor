@@ -255,6 +255,10 @@ else
 }
 
 @code {
+    // ── Query-string parameters ───────────────────────────────────────────────
+    [SupplyParameterFromQuery(Name = "status")]
+    public string? StatusQuery { get; set; }
+
     // ── Filter state ──────────────────────────────────────────────────────────
     private readonly PaRequestFilter _filter = new();
     private DateTime? _submittedFrom;
@@ -277,6 +281,13 @@ else
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
+        // Apply ?status= query-string pre-filter (e.g. from draft-saved toast link)
+        if (!string.IsNullOrEmpty(StatusQuery) &&
+            Enum.TryParse<PaStatus>(StatusQuery, ignoreCase: true, out var parsedStatus))
+        {
+            _filter.Status = parsedStatus;
+        }
+
         await Task.WhenAll(LoadReferenceDataAsync(), LoadAsync());
     }
 

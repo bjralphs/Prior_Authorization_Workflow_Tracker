@@ -118,3 +118,12 @@ h1:focus {
 .components-reconnect-failed .reconnect-message-failed  { display: block; }
 .components-reconnect-rejected .reconnect-message-show    { display: none; }
 .components-reconnect-rejected .reconnect-message-rejected { display: block; }
+
+/* Toast action link *
+.toast-link {
+    color: #fff;
+    text-decoration: underline;
+}
+.toast-link:hover {
+    color: rgba(255,255,255,.85);
+}

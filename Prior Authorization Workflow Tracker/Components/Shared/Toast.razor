@@ -8,7 +8,13 @@
         <div class="toast show align-items-center text-bg-@ToastClass(toast.Level) border-0 mb-2"
              role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
-                <div class="toast-body">@toast.Message</div>
+                <div class="toast-body">
+                    @toast.Message
+                    @if (toast.LinkText is not null && toast.LinkUrl is not null)
+                    {
+                        <a href="@toast.LinkUrl" class="toast-link ms-2 fw-semibold">@toast.LinkText</a>
+                    }
+                </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto"
                         @onclick="() => ToastSvc.Dismiss(toast.Id)"
                         aria-label="Close"></button>
