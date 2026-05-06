@@ -103,13 +103,13 @@ article.content {
     }
 
     .sidebar {
-        width: 430px;
+        width: 300px;
         min-height: 100vh;
         position: sticky;
         top: 0;
         flex-shrink: 0;
-        padding: 20px 18px 30px;
-        border-radius: 30px;
+        padding: 16px 14px 24px;
+        border-radius: 24px;
         z-index: 2;
     }
 

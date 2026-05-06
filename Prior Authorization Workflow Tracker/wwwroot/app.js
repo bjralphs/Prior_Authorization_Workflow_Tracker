@@ -7,6 +7,19 @@
  * @param {string} mimeType  - e.g. "text/csv"
  * @param {Uint8Array} bytes - file bytes from .NET byte[]
  */
+// Chart.js wrapper — creates or replaces a chart on a canvas element.
+// Called from Blazor via IJSRuntime after each data load.
+window.paCharts = {};
+window.renderChart = function (canvasId, config) {
+    if (window.paCharts[canvasId]) {
+        window.paCharts[canvasId].destroy();
+        delete window.paCharts[canvasId];
+    }
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    window.paCharts[canvasId] = new Chart(canvas, config);
+};
+
 window.downloadFileFromBytes = function (fileName, mimeType, bytes) {
     const blob = new Blob([bytes], { type: mimeType });
     const url = URL.createObjectURL(blob);

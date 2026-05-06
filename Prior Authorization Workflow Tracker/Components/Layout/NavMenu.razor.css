@@ -117,12 +117,12 @@
     --accent: #d96c55;
     display: block;      /* override any inherited flex sizing */
     position: relative;
-    height: 122px;
+    height: 86px;
     margin-top: 0;
 }
 
 .nav-item + .nav-item {
-    margin-top: -18px;
+    margin-top: -13px;
 }
 
 .nav-item:nth-child(1) { z-index: 23; }
@@ -139,8 +139,8 @@
 .folder-envelope {
     position: absolute;
     inset: 0;
-    height: 116px;
-    border-radius: 9px 24px 24px 9px;
+    height: 82px;
+    border-radius: 6px 17px 17px 6px;
     background: linear-gradient(150deg, #f7dfaa 0%, #efc674 58%, #dfaa4f 100%);
     box-shadow:
         0 14px 20px rgba(48, 30, 8, 0.24),
@@ -168,11 +168,11 @@
 
 .color-sheet {
     position: absolute;
-    top: 11px;
-    left: 7px;
+    top: 8px;
+    left: 5px;
     right: 0;
-    height: 174px;
-    border-radius: 10px 26px 26px 10px;
+    height: 122px;
+    border-radius: 7px 18px 18px 7px;
     background:
         linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 36%),
         var(--accent);
@@ -207,7 +207,7 @@
 
 .nav-item:hover .color-sheet,
 .nav-item:focus-within .color-sheet {
-    transform: translateX(36px);
+    transform: translateX(25px);
     box-shadow:
         0 17px 24px rgba(47, 29, 8, 0.27),
         inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -216,7 +216,7 @@
 
 /* Active page: keep color-sheet slid out */
 .nav-item:has(.folder-link.active) .color-sheet {
-    transform: translateX(36px);
+    transform: translateX(25px);
     box-shadow:
         0 17px 24px rgba(47, 29, 8, 0.27),
         inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -227,10 +227,10 @@
 
 .folder-link {
     position: absolute;
-    top: 4px;
-    left: 30px;
-    width: 356px;
-    height: 108px;
+    top: 3px;
+    left: 12px;
+    width: 250px;
+    height: 76px;
     display: block;
     text-decoration: none;
     color: var(--ink);
@@ -256,10 +256,10 @@ button.folder-link {
 .folder-svg {
     position: absolute;
     inset: 0;
-    width: 356px;
-    height: 108px;
+    width: 250px;
+    height: 76px;
     overflow: visible;
-    filter: drop-shadow(0 12px 11px rgba(48, 30, 8, 0.22));
+    filter: drop-shadow(0 8px 8px rgba(48, 30, 8, 0.22));
 }
 
 /* ── Nav content layout ───────────────────────────── */
@@ -268,17 +268,17 @@ button.folder-link {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: 50px 1px 1fr;
+    grid-template-columns: 35px 1px 1fr;
     align-items: center;
-    gap: 16px;
-    padding: 0 54px 0 24px;
+    gap: 10px;
+    padding: 0 38px 0 16px;
     z-index: 5;
     pointer-events: none;
 }
 
 .icon {
-    width: 44px;
-    height: 44px;
+    width: 30px;
+    height: 30px;
     display: grid;
     place-items: center;
     color: var(--accent);
@@ -289,18 +289,18 @@ button.folder-link {
 }
 
 .icon svg {
-    width: 40px;
-    height: 40px;
+    width: 26px;
+    height: 26px;
     stroke: currentColor;
     fill: none;
-    stroke-width: 2.25;
+    stroke-width: 2.0;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
 .divider {
     width: 1px;
-    height: 50px;
+    height: 35px;
     background: linear-gradient(to bottom, transparent, rgba(105, 69, 25, 0.26), transparent);
 }
 
@@ -311,9 +311,9 @@ button.folder-link {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: "Trebuchet MS", "Arial Narrow", Arial, sans-serif;
-    font-size: 22px;
+    font-size: 15px;
     font-weight: 700;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.1px;
     color: var(--ink-soft);
     text-shadow:
         0 1px 0 rgba(255, 255, 255, 0.10),
@@ -341,26 +341,26 @@ button.folder-link {
 /* ── Sign-out tall variant ────────────────────────── */
 
 .nav-item.signout {
-    height: 196px;
+    height: 138px;
 }
 
 .nav-item.signout .folder-envelope {
-    height: 196px;
+    height: 138px;
 }
 
 .nav-item.signout .folder-link {
-    top: 4px;
-    height: 192px;
+    top: 3px;
+    height: 134px;
 }
 
 .nav-item.signout .folder-svg {
-    height: 192px;
+    height: 134px;
 }
 
 .nav-item.signout .nav-content {
     top: 0;
     bottom: auto;
-    height: 108px;
+    height: 76px;
 }
 
 /* ── Mobile: hide nav, show toggle ───────────────── */

@@ -48,6 +48,16 @@
 @* ── Status Summary tab ───────────────────────────────────────────────────── *@
 @if (_activeTab == "status")
 {
+    @if (!_loadingStatus && _statusSummary.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-body d-flex justify-content-center">
+                <div style="position:relative;width:100%;max-width:400px;height:260px;">
+                    <canvas id="chart-status"></canvas>
+                </div>
+            </div>
+        </div>
+    }
     <div class="card">
         <div class="card-header">Request Status Breakdown</div>
         <div class="card-body p-0">
@@ -127,6 +137,16 @@
         </div>
     </div>
 
+    @if (!_loadingDenials && _denials.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div style="position:relative;height:240px;">
+                    <canvas id="chart-denials"></canvas>
+                </div>
+            </div>
+        </div>
+    }
     <div class="card">
         <div class="card-header">Denial Reasons</div>
         <div class="card-body p-0">
@@ -196,6 +216,16 @@
         </div>
     </div>
 
+    @if (!_loadingVolume && _volume.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div style="position:relative;height:260px;">
+                    <canvas id="chart-volume"></canvas>
+                </div>
+            </div>
+        </div>
+    }
     <div class="card">
         <div class="card-header">Monthly Submission Volume</div>
         <div class="card-body p-0">
@@ -337,6 +367,16 @@
         </div>
     </div>
 
+    @if (!_loadingTurnaround && _turnaround.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div style="position:relative;height:220px;">
+                    <canvas id="chart-turnaround"></canvas>
+                </div>
+            </div>
+        </div>
+    }
     <div class="card">
         <div class="card-header">Average Turnaround Time (Submitted → Decision)</div>
         <div class="card-body p-0">
@@ -393,6 +433,16 @@
         </div>
     </div>
 
+    @if (!_loadingProviderVolume && _providerVolume.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div style="position:relative;height:250px;">
+                    <canvas id="chart-providervolume"></canvas>
+                </div>
+            </div>
+        </div>
+    }
     <div class="card">
         <div class="card-header">Provider Submission Volume</div>
         <div class="card-body p-0">
@@ -435,6 +485,16 @@
 @* ── Approval Rate tab (§12.2 report 3) ──────────────────────────────────── *@
 @if (_activeTab == "approvalrate")
 {
+    @if (!_loadingApprovalRate && _approvalRate.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div style="position:relative;height:220px;">
+                    <canvas id="chart-approvalrate"></canvas>
+                </div>
+            </div>
+        </div>
+    }
     <div class="card">
         <div class="card-header d-flex align-items-center gap-3 flex-wrap">
             <span>Approval Rate by Priority</span>
@@ -551,9 +611,20 @@
     private DateTime _approvalRateFrom = DateTime.UtcNow.AddMonths(-3);
     private DateTime _approvalRateTo   = DateTime.UtcNow;
 
+    // ── Chart rendering ────────────────────────────────────────────────────────
+    private bool _pendingChartRender;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
         => await LoadStatusAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_pendingChartRender) return;
+        _pendingChartRender = false;
+        try { await RenderActiveChartAsync(); }
+        catch (JSException) { /* chart.js not yet ready */ }
+    }
 
     // ── Tab switching ─────────────────────────────────────────────────────────
     private async Task SetTab(string tab)
@@ -577,7 +648,7 @@
         _loadingStatus = true;
         try   { _statusSummary = await ReportingSvc.GetStatusSummaryAsync(); }
         catch (Exception ex) { Logger.LogError(ex, "Status summary load failed."); }
-        finally { _loadingStatus = false; }
+        finally { _loadingStatus = false; _pendingChartRender = true; }
     }
 
     private async Task LoadDenialsAsync()
@@ -590,7 +661,7 @@
                 DateOnly.FromDateTime(_denialTo));
         }
         catch (Exception ex) { Logger.LogError(ex, "Denial analysis load failed."); }
-        finally { _loadingDenials = false; }
+        finally { _loadingDenials = false; _pendingChartRender = true; }
     }
 
     private async Task LoadVolumeAsync()
@@ -598,7 +669,7 @@
         _loadingVolume = true;
         try   { _volume = await ReportingSvc.GetMonthlyVolumeAsync(_volumeMonths); }
         catch (Exception ex) { Logger.LogError(ex, "Volume load failed."); }
-        finally { _loadingVolume = false; }
+        finally { _loadingVolume = false; _pendingChartRender = true; }
     }
 
     private async Task SetVolumeMonths(int months)
@@ -625,7 +696,7 @@
                 DateOnly.FromDateTime(_turnaroundTo));
         }
         catch (Exception ex) { Logger.LogError(ex, "Turnaround time load failed."); }
-        finally { _loadingTurnaround = false; }
+        finally { _loadingTurnaround = false; _pendingChartRender = true; }
     }
 
     private async Task LoadProviderVolumeAsync()
@@ -638,7 +709,7 @@
                 DateOnly.FromDateTime(_providerVolumeTo));
         }
         catch (Exception ex) { Logger.LogError(ex, "Provider volume load failed."); }
-        finally { _loadingProviderVolume = false; }
+        finally { _loadingProviderVolume = false; _pendingChartRender = true; }
     }
 
     private async Task LoadApprovalRateAsync()
@@ -651,7 +722,7 @@
                 DateOnly.FromDateTime(_approvalRateTo));
         }
         catch (Exception ex) { Logger.LogError(ex, "Approval rate load failed."); }
-        finally { _loadingApprovalRate = false; }
+        finally { _loadingApprovalRate = false; _pendingChartRender = true; }
     }
 
     // ── CSV Export (FR-010) ───────────────────────────────────────────────────
@@ -675,4 +746,244 @@
             _exporting = false;
         }
     }
+
+    // ── Chart JS helpers ──────────────────────────────────────────────────────
+    private async Task RenderActiveChartAsync()
+    {
+        switch (_activeTab)
+        {
+            case "status"         when _statusSummary.Count > 0:
+                await JS.InvokeVoidAsync("renderChart", "chart-status",         BuildStatusChart());         break;
+            case "denials"        when _denials.Count > 0:
+                await JS.InvokeVoidAsync("renderChart", "chart-denials",        BuildDenialsChart());        break;
+            case "volume"         when _volume.Count > 0:
+                await JS.InvokeVoidAsync("renderChart", "chart-volume",         BuildVolumeChart());         break;
+            case "turnaround"     when _turnaround.Count > 0:
+                await JS.InvokeVoidAsync("renderChart", "chart-turnaround",     BuildTurnaroundChart());     break;
+            case "providervolume" when _providerVolume.Count > 0:
+                await JS.InvokeVoidAsync("renderChart", "chart-providervolume", BuildProviderVolumeChart()); break;
+            case "approvalrate"   when _approvalRate.Count > 0:
+                await JS.InvokeVoidAsync("renderChart", "chart-approvalrate",   BuildApprovalRateChart());   break;
+        }
+    }
+
+    private static string StatusChartColor(PaStatus s) => s switch
+    {
+        PaStatus.Draft       => "rgba(108,117,125,0.80)",
+        PaStatus.Submitted   => "rgba(13,110,253,0.80)",
+        PaStatus.PendingInfo => "rgba(253,126,20,0.80)",
+        PaStatus.UnderReview => "rgba(255,193,7,0.80)",
+        PaStatus.Approved    => "rgba(25,135,84,0.80)",
+        PaStatus.Denied      => "rgba(220,53,69,0.80)",
+        PaStatus.Appealed    => "rgba(111,66,193,0.80)",
+        PaStatus.Expired     => "rgba(73,80,87,0.80)",
+        PaStatus.Withdrawn   => "rgba(173,181,189,0.80)",
+        _                    => "rgba(0,0,0,0.50)",
+    };
+
+    private object BuildStatusChart() => new
+    {
+        type = "doughnut",
+        data = new
+        {
+            labels   = _statusSummary.Select(r => r.Status.ToString()).ToArray(),
+            datasets = new[]
+            {
+                new
+                {
+                    data            = _statusSummary.Select(r => r.Count).ToArray(),
+                    backgroundColor = _statusSummary.Select(r => StatusChartColor(r.Status)).ToArray(),
+                    borderWidth     = 1,
+                }
+            }
+        },
+        options = new
+        {
+            responsive          = true,
+            maintainAspectRatio = false,
+            plugins = new { legend = new { position = "right" } },
+        }
+    };
+
+    private object BuildDenialsChart() => new
+    {
+        type = "bar",
+        data = new
+        {
+            labels   = _denials.Select(r => r.ReasonCode).ToArray(),
+            datasets = new[]
+            {
+                new
+                {
+                    label           = "Denials",
+                    data            = _denials.Select(r => r.Count).ToArray(),
+                    backgroundColor = "rgba(220,53,69,0.72)",
+                    borderColor     = "rgba(220,53,69,1)",
+                    borderWidth     = 1,
+                }
+            }
+        },
+        options = new
+        {
+            indexAxis           = "y",
+            responsive          = true,
+            maintainAspectRatio = false,
+            plugins = new { legend = new { display = false } },
+            scales  = new { x = new { beginAtZero = true, ticks = new { precision = 0 } } }
+        }
+    };
+
+    private object BuildVolumeChart() => new
+    {
+        type = "line",
+        data = new
+        {
+            labels   = _volume.Select(r => new DateTime(r.Year, r.Month, 1).ToString("MMM yy")).ToArray(),
+            datasets = new object[]
+            {
+                new
+                {
+                    label           = "Submitted",
+                    data            = _volume.Select(r => r.Submitted).ToArray(),
+                    borderColor     = "rgba(13,110,253,0.9)",
+                    backgroundColor = "rgba(13,110,253,0.12)",
+                    fill            = true,
+                    tension         = 0.35,
+                    pointRadius     = 4,
+                },
+                new
+                {
+                    label           = "Approved",
+                    data            = _volume.Select(r => r.Approved).ToArray(),
+                    borderColor     = "rgba(25,135,84,0.9)",
+                    backgroundColor = "rgba(25,135,84,0.12)",
+                    fill            = true,
+                    tension         = 0.35,
+                    pointRadius     = 4,
+                },
+                new
+                {
+                    label           = "Denied",
+                    data            = _volume.Select(r => r.Denied).ToArray(),
+                    borderColor     = "rgba(220,53,69,0.9)",
+                    backgroundColor = "rgba(220,53,69,0.12)",
+                    fill            = true,
+                    tension         = 0.35,
+                    pointRadius     = 4,
+                }
+            }
+        },
+        options = new
+        {
+            responsive          = true,
+            maintainAspectRatio = false,
+            plugins = new { legend = new { position = "top" } },
+            scales  = new { y = new { beginAtZero = true, ticks = new { precision = 0 } } }
+        }
+    };
+
+    private object BuildTurnaroundChart() => new
+    {
+        type = "bar",
+        data = new
+        {
+            labels   = _turnaround.Select(r => r.Priority).ToArray(),
+            datasets = new[]
+            {
+                new
+                {
+                    label           = "Avg Days",
+                    data            = _turnaround.Select(r => r.AverageDays).ToArray(),
+                    backgroundColor = _turnaround.Select(r => r.Priority switch
+                    {
+                        "Routine" => "rgba(25,135,84,0.75)",
+                        "Urgent"  => "rgba(253,126,20,0.75)",
+                        _         => "rgba(220,53,69,0.75)",
+                    }).ToArray(),
+                    borderRadius    = 4,
+                }
+            }
+        },
+        options = new
+        {
+            responsive          = true,
+            maintainAspectRatio = false,
+            plugins = new { legend = new { display = false } },
+            scales  = new
+            {
+                y = new { beginAtZero = true, title = new { display = true, text = "Days" } }
+            }
+        }
+    };
+
+    private object BuildProviderVolumeChart() => new
+    {
+        type = "bar",
+        data = new
+        {
+            labels   = _providerVolume.Select(r => r.ProviderDisplayName).ToArray(),
+            datasets = new object[]
+            {
+                new
+                {
+                    label           = "Approved",
+                    data            = _providerVolume.Select(r => r.ApprovedCount).ToArray(),
+                    backgroundColor = "rgba(25,135,84,0.75)",
+                    stack           = "s",
+                },
+                new
+                {
+                    label           = "Denied",
+                    data            = _providerVolume.Select(r => r.DeniedCount).ToArray(),
+                    backgroundColor = "rgba(220,53,69,0.75)",
+                    stack           = "s",
+                }
+            }
+        },
+        options = new
+        {
+            indexAxis           = "y",
+            responsive          = true,
+            maintainAspectRatio = false,
+            plugins = new { legend = new { position = "top" } },
+            scales  = new
+            {
+                x = new { beginAtZero = true, stacked = true, ticks = new { precision = 0 } },
+                y = new { stacked = true }
+            }
+        }
+    };
+
+    private object BuildApprovalRateChart() => new
+    {
+        type = "bar",
+        data = new
+        {
+            labels   = _approvalRate.Select(r => r.Priority).ToArray(),
+            datasets = new object[]
+            {
+                new
+                {
+                    label           = "Approved",
+                    data            = _approvalRate.Select(r => r.Approved).ToArray(),
+                    backgroundColor = "rgba(25,135,84,0.75)",
+                    borderRadius    = 4,
+                },
+                new
+                {
+                    label           = "Denied",
+                    data            = _approvalRate.Select(r => r.Denied).ToArray(),
+                    backgroundColor = "rgba(220,53,69,0.75)",
+                    borderRadius    = 4,
+                }
+            }
+        },
+        options = new
+        {
+            responsive          = true,
+            maintainAspectRatio = false,
+            plugins = new { legend = new { position = "top" } },
+            scales  = new { y = new { beginAtZero = true, ticks = new { precision = 0 } } }
+        }
+    };
 }
