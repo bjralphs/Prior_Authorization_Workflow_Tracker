@@ -18,6 +18,7 @@ article.content {
 }
 
 .sidebar {
+    position: relative;
     background:
         linear-gradient(145deg, #e8bd63 0%, #d6a04a 52%, #b97c2f 100%);
     box-shadow:

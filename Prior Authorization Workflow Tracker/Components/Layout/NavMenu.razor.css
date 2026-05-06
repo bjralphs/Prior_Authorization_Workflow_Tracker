@@ -433,7 +433,5 @@ button.folder-link {
 
     .nav-scrollable {
         display: block;
-        height: calc(100vh - 200px);
-        overflow-y: auto;
     }
 }
