@@ -1,18 +1,18 @@
-﻿@page "/"
+@page "/"
 @attribute [Authorize]
 @inject IReportingService ReportingSvc
 @inject ICurrentUserService CurrentUser
 @inject NavigationManager Nav
 @inject ILogger<Home> Logger
 
-<PageTitle>Dashboard — PA Tracker</PageTitle>
+<PageTitle>Dashboard � PA Tracker</PageTitle>
 <Breadcrumb Items="@(new[] { ("Dashboard", (string?)null) })" />
 
 @if (_loading)
 {
     <div class="d-flex justify-content-center py-5">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading…</span>
+            <span class="visually-hidden">Loading�</span>
         </div>
     </div>
 }
@@ -24,7 +24,7 @@ else
 {
     <h4 class="mb-4">Dashboard</h4>
 
-    @* ── Specialist panel ────────────────────────────────────────────────── *@
+    @* -- Specialist panel -------------------------------------------------- *@
     <AuthorizeView Roles="Authorization Specialist">
         <Authorized>
             @if (_specialistDash is not null)
@@ -35,7 +35,7 @@ else
                             <div class="card-body">
                                 <div class="text-muted small">My Drafts</div>
                                 <div class="display-6 fw-bold text-secondary">@_specialistDash.MyDrafts</div>
-                                <a href="/requests?status=Draft" class="small">View drafts →</a>
+                                <a href="/requests?status=Draft" class="small">View drafts ?</a>
                             </div>
                         </div>
                     </div>
@@ -54,7 +54,7 @@ else
                                 <div class="display-6 fw-bold text-warning">@_specialistDash.MyPendingInfo</div>
                                 @if (_specialistDash.MyPendingInfo > 0)
                                 {
-                                    <a href="/requests?status=PendingInfo" class="small">Respond now →</a>
+                                    <a href="/requests?status=PendingInfo" class="small">Respond now ?</a>
                                 }
                             </div>
                         </div>
@@ -80,7 +80,7 @@ else
                     <div class="col-sm-4">
                         <div class="card border-warning h-100">
                             <div class="card-body text-center">
-                                <div class="text-muted small">My Auths Expiring ≤ 30 days</div>
+                                <div class="text-muted small">My Auths Expiring = 30 days</div>
                                 <div class="fs-3 fw-semibold text-warning">@_specialistDash.MyExpiringSoon</div>
                             </div>
                         </div>
@@ -99,7 +99,7 @@ else
                 {
                     <div class="mb-4">
                         <h6 class="text-muted mb-2">Recent Activity</h6>
-                        <table class="table table-sm table-hover">
+                        <table class="table table-sm table-hover table-striped">
                             <thead>
                                 <tr>
                                     <th>Request</th>
@@ -126,7 +126,7 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @* ── Provider panel ──────────────────────────────────────────────────── *@
+    @* -- Provider panel ---------------------------------------------------- *@
     <AuthorizeView Roles="Treating Provider">
         <Authorized>
             @if (_providerDash is not null)
@@ -155,7 +155,7 @@ else
                                 <div class="display-6 fw-bold text-warning">@_providerDash.MyPendingInfo</div>
                                 @if (_providerDash.MyPendingInfo > 0)
                                 {
-                                    <a href="/requests?status=PendingInfo" class="small">Respond now →</a>
+                                    <a href="/requests?status=PendingInfo" class="small">Respond now ?</a>
                                 }
                             </div>
                         </div>
@@ -180,7 +180,7 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @* ── Reviewer panel ──────────────────────────────────────────────────── *@
+    @* -- Reviewer panel ---------------------------------------------------- *@
     <AuthorizeView Roles="Payer Reviewer">
         <Authorized>
             @if (_reviewerDash is not null)
@@ -193,7 +193,7 @@ else
                                 <div class="display-6 fw-bold text-danger">@_reviewerDash.AwaitingReview</div>
                                 @if (_reviewerDash.AwaitingReview > 0)
                                 {
-                                    <a href="/requests?status=Submitted" class="small">Review queue →</a>
+                                    <a href="/requests?status=Submitted" class="small">Review queue ?</a>
                                 }
                             </div>
                         </div>
@@ -264,7 +264,7 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @* ── Billing Manager panel ────────────────────────────────────────────── *@
+    @* -- Billing Manager panel ---------------------------------------------- *@
     <AuthorizeView Roles="Billing Manager">
         <Authorized>
             @if (_billingDash is not null)
@@ -281,7 +281,7 @@ else
                     <div class="col-sm-6 col-xl-4">
                         <div class="card border-warning h-100">
                             <div class="card-body">
-                                <div class="text-muted small">Expiring ≤ 30 days</div>
+                                <div class="text-muted small">Expiring = 30 days</div>
                                 <div class="display-6 fw-bold text-warning">@_billingDash.ExpiringSoon</div>
                             </div>
                         </div>
@@ -365,7 +365,7 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @* ── Admin panel — User Activity Summary + Audit Log Quick-Search (§12.1) ── *@
+    @* -- Admin panel � User Activity Summary + Audit Log Quick-Search (�12.1) -- *@
     <AuthorizeView Roles="Administrator">
         <Authorized>
             <div class="card mb-4">
@@ -417,7 +417,7 @@ else
                             <h6 class="text-muted mb-2">Quick Audit Search</h6>
                             <div class="d-flex gap-2 mb-2">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="User name or email…"
+                                       placeholder="User name or email�"
                                        @bind="_adminQuickUser" @bind:event="oninput" />
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="Entity (e.g. PaRequest)"
@@ -435,10 +435,10 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @* ── Admin / shared global summary (always shown below role panel) ────── *@
+    @* -- Admin / shared global summary (always shown below role panel) ------ *@
     <AuthorizeView Roles="Administrator,Authorization Specialist,Payer Reviewer">
         <Authorized>
-            @* ── KPI tiles ───────────────────────────────────────────────── *@
+            @* -- KPI tiles ------------------------------------------------- *@
             <div class="row g-3 mb-4">
                 <div class="col-sm-6 col-xl-3">
                     <div class="card border-primary h-100">
@@ -467,14 +467,14 @@ else
                 <div class="col-sm-6 col-xl-3">
                     <div class="card border-secondary h-100">
                         <div class="card-body">
-                            <div class="text-muted small">Expiring ≤ 30 days</div>
+                            <div class="text-muted small">Expiring = 30 days</div>
                             <div class="display-6 fw-bold text-secondary">@_summary!.ExpiringSoon</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* ── This-month summary ───────────────────────────────────────── *@
+            @* -- This-month summary ----------------------------------------- *@
             <div class="row g-3 mb-4">
                 <div class="col-sm-4">
                     <div class="card h-100">
@@ -506,7 +506,7 @@ else
 
     <div class="row g-3">
 
-        @* ── Status breakdown ──────────────────────────────────────────── *@
+        @* -- Status breakdown -------------------------------------------- *@
         <div class="col-lg-6">
             <div class="card h-100">
                 <div class="card-header">Request Status Breakdown</div>
@@ -517,7 +517,7 @@ else
                     }
                     else
                     {
-                        <table class="table table-sm table-hover mb-0">
+                        <table class="table table-sm table-hover table-striped mb-0">
                             <thead>
                                 <tr>
                                     <th>Status</th>
@@ -538,7 +538,7 @@ else
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted">�</span>
                                             }
                                         </td>
                                     </tr>
@@ -550,7 +550,7 @@ else
             </div>
         </div>
 
-        @* ── Expiring authorizations ───────────────────────────────────── *@
+        @* -- Expiring authorizations ------------------------------------- *@
         <div class="col-lg-6">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -564,7 +564,7 @@ else
                     }
                     else
                     {
-                        <table class="table table-sm table-hover mb-0">
+                        <table class="table table-sm table-hover table-striped mb-0">
                             <thead>
                                 <tr>
                                     <th>Request</th>
@@ -613,19 +613,19 @@ else
     private IReadOnlyList<RequestStatusSummary> _statusSummary = [];
     private IReadOnlyList<ExpiringAuthorization> _expiring = [];
 
-    // Role-specific dashboard state (T-B3–T-B8)
+    // Role-specific dashboard state (T-B3�T-B8)
     private SpecialistDashboard? _specialistDash;
     private ProviderDashboard?   _providerDash;
     private ReviewerDashboard?   _reviewerDash;
     private BillingDashboard?    _billingDash;
 
-    // Specialist activity feed (§12.1 GAP-02)
+    // Specialist activity feed (�12.1 GAP-02)
     private IReadOnlyList<RecentActivityItem> _recentActivity = [];
 
-    // Billing top-5 denial reasons (§12.1 GAP-04)
+    // Billing top-5 denial reasons (�12.1 GAP-04)
     private IReadOnlyList<DenialReasonSummary> _billingTopDenials = [];
 
-    // Admin panel state (§12.1)
+    // Admin panel state (�12.1)
     private IReadOnlyList<ProviderVolumeSummary> _adminVolume = [];
     private string _adminQuickUser   = string.Empty;
     private string _adminQuickEntity = string.Empty;
