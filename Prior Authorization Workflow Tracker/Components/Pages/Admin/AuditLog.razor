@@ -64,7 +64,7 @@ else if (_entries.Count == 0)
 else
 {
     <div class="card">
-        <div class="card-body p-0">
+        <div class="card-body p-0" style="overflow-x: auto;">
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
@@ -113,14 +113,14 @@ else
                                     {
                                         <div class="mb-2">
                                             <strong class="small text-danger">Before:</strong>
-                                            <pre class="small mb-0 text-danger">@entry.OldValues</pre>
+                                            <pre class="small mb-0 text-danger" style="overflow-x: auto; white-space: pre-wrap; word-break: break-all;">@entry.OldValues</pre>
                                         </div>
                                     }
                                     @if (entry.NewValues is not null)
                                     {
                                         <div>
                                             <strong class="small text-success">After:</strong>
-                                            <pre class="small mb-0 text-success">@entry.NewValues</pre>
+                                            <pre class="small mb-0 text-success" style="overflow-x: auto; white-space: pre-wrap; word-break: break-all;">@entry.NewValues</pre>
                                         </div>
                                     }
                                 </td>
