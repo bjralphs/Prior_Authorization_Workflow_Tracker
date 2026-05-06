@@ -2,6 +2,10 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    background:
+        radial-gradient(circle at 55% 38%, rgba(255,255,255,0.95) 0%, transparent 42%),
+        linear-gradient(135deg, #f4f1ea 0%, #e7dfd1 48%, #d6c8b4 100%);
+    min-height: 100vh;
 }
 
 main {
@@ -106,6 +110,7 @@ article.content {
         flex-shrink: 0;
         padding: 20px 18px 30px;
         border-radius: 30px;
+        z-index: 2;
     }
 
     main {
