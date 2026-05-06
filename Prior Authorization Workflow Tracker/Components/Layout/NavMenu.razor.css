@@ -262,35 +262,6 @@ button.folder-link {
     filter: drop-shadow(0 12px 11px rgba(48, 30, 8, 0.22));
 }
 
-.folder-shape {
-    fill: url(#manilaGradient);
-    stroke: rgba(120, 76, 23, 0.24);
-    stroke-width: 1;
-}
-
-.folder-highlight {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.24);
-    stroke-width: 1;
-}
-
-.folder-bottom-shadow {
-    fill: none;
-    stroke: rgba(98, 58, 10, 0.12);
-    stroke-width: 3;
-}
-
-.folder-pocket-shadow {
-    fill: url(#pocketShadowGradient);
-    opacity: 0.75;
-}
-
-.folder-grain {
-    fill: url(#paperGrain);
-    opacity: 0.22;
-    mix-blend-mode: multiply;
-}
-
 /* ── Nav content layout ───────────────────────────── */
 
 .nav-content {

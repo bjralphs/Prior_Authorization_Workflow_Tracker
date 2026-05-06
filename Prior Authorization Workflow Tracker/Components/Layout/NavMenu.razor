@@ -5,7 +5,22 @@
 @inject ICurrentUserService CurrentUser
 @inject NavigationManager Nav
 
-@* SVG defs required by all folder <use href="#..."> references *@
+@* Non-scoped styles:
+   1) NavLink renders <a> without the Blazor scope attribute, so .folder-link
+      positioning must be non-scoped to apply to anchor elements.
+   2) SVG <use> children never get the scope attribute, so paint-server rules
+      (fill: url(#id)) must also be non-scoped to match them. *@
+<style>
+    .folder-link { position: absolute; top: 4px; left: 30px; width: 356px; height: 108px; display: block; text-decoration: none; color: var(--ink); z-index: 3; }
+    .folder-link:focus { outline: none; }
+    .folder-shape         { fill: url(#manilaGradient); stroke: rgba(120,76,23,.24); stroke-width: 1; }
+    .folder-highlight     { fill: none; stroke: rgba(255,255,255,.24); stroke-width: 1; }
+    .folder-bottom-shadow { fill: none; stroke: rgba(98,58,10,.12); stroke-width: 3; }
+    .folder-pocket-shadow { fill: url(#pocketShadowGradient); opacity: .75; }
+    .folder-grain         { fill: url(#paperGrain); opacity: .22; mix-blend-mode: multiply; }
+</style>
+
+@* Hidden SVG — defines all gradient/pattern/path IDs used by folder <use> references *@
 <svg width="0" height="0" aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;">
     <defs>
         <linearGradient id="manilaGradient" x1="0" y1="0" x2="1" y2="1">
@@ -23,20 +38,13 @@
             <circle cx="6" cy="5" r="0.35" fill="rgba(255,255,255,0.34)" />
             <circle cx="3" cy="7" r="0.35" fill="rgba(77,48,15,0.14)" />
         </pattern>
-        <path id="folderFacePath"
-              d="M0 8 Q0 0 8 0 H314 C333 0 344 4 344 20 V31 C344 39 356 38 356 48 V108 H0 Z" />
-        <path id="folderHighlightPath"
-              d="M8 1 H312 C331 1 342 5 342 20" />
-        <path id="folderBottomShadowPath"
-              d="M6 106 H350" />
-        <path id="folderPocketShadowPath"
-              d="M312 4 C329 5 340 9 340 20 V31 C340 42 352 39 352 48 V106 H322 C326 84 326 25 312 4 Z" />
-        <path id="folderFacePathTall"
-              d="M0 8 Q0 0 8 0 H314 C333 0 344 4 344 20 V31 C344 39 356 38 356 48 V192 H0 Z" />
-        <path id="folderBottomShadowPathTall"
-              d="M6 190 H350" />
-        <path id="folderPocketShadowPathTall"
-              d="M312 4 C329 5 340 9 340 20 V31 C340 42 352 39 352 48 V190 H322 C326 84 326 25 312 4 Z" />
+        <path id="folderFacePath"            d="M0 8 Q0 0 8 0 H314 C333 0 344 4 344 20 V31 C344 39 356 38 356 48 V108 H0 Z" />
+        <path id="folderHighlightPath"       d="M8 1 H312 C331 1 342 5 342 20" />
+        <path id="folderBottomShadowPath"    d="M6 106 H350" />
+        <path id="folderPocketShadowPath"    d="M312 4 C329 5 340 9 340 20 V31 C340 42 352 39 352 48 V106 H322 C326 84 326 25 312 4 Z" />
+        <path id="folderFacePathTall"        d="M0 8 Q0 0 8 0 H314 C333 0 344 4 344 20 V31 C344 39 356 38 356 48 V192 H0 Z" />
+        <path id="folderBottomShadowPathTall" d="M6 190 H350" />
+        <path id="folderPocketShadowPathTall" d="M312 4 C329 5 340 9 340 20 V31 C340 42 352 39 352 48 V190 H322 C326 84 326 25 312 4 Z" />
     </defs>
 </svg>
 
@@ -59,11 +67,11 @@
                     <div class="color-sheet"></div>
                     <NavLink class="folder-link" href="" Match="NavLinkMatch.All">
                         <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                            <use href="#folderFacePath" class="folder-shape"></use>
-                            <use href="#folderHighlightPath" class="folder-highlight"></use>
+                            <use href="#folderFacePath"         class="folder-shape"></use>
+                            <use href="#folderHighlightPath"    class="folder-highlight"></use>
                             <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                             <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                            <use href="#folderFacePath" class="folder-grain"></use>
+                            <use href="#folderFacePath"         class="folder-grain"></use>
                         </svg>
                         <span class="nav-content">
                             <span class="icon">
@@ -88,11 +96,11 @@
                             <div class="color-sheet"></div>
                             <NavLink class="folder-link" href="/requests">
                                 <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                                    <use href="#folderFacePath" class="folder-shape"></use>
-                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderFacePath"         class="folder-shape"></use>
+                                    <use href="#folderHighlightPath"    class="folder-highlight"></use>
                                     <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                                     <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                    <use href="#folderFacePath"         class="folder-grain"></use>
                                 </svg>
                                 <span class="nav-content">
                                     <span class="icon">
@@ -119,11 +127,11 @@
                             <div class="color-sheet"></div>
                             <NavLink class="folder-link" href="/requests/new">
                                 <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                                    <use href="#folderFacePath" class="folder-shape"></use>
-                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderFacePath"         class="folder-shape"></use>
+                                    <use href="#folderHighlightPath"    class="folder-highlight"></use>
                                     <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                                     <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                    <use href="#folderFacePath"         class="folder-grain"></use>
                                 </svg>
                                 <span class="nav-content">
                                     <span class="icon">
@@ -149,11 +157,11 @@
                             <div class="color-sheet"></div>
                             <NavLink class="folder-link" href="/reports">
                                 <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                                    <use href="#folderFacePath" class="folder-shape"></use>
-                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderFacePath"         class="folder-shape"></use>
+                                    <use href="#folderHighlightPath"    class="folder-highlight"></use>
                                     <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                                     <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                    <use href="#folderFacePath"         class="folder-grain"></use>
                                 </svg>
                                 <span class="nav-content">
                                     <span class="icon">
@@ -178,11 +186,11 @@
                     <div class="color-sheet"></div>
                     <NavLink class="folder-link" href="/notifications">
                         <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                            <use href="#folderFacePath" class="folder-shape"></use>
-                            <use href="#folderHighlightPath" class="folder-highlight"></use>
+                            <use href="#folderFacePath"         class="folder-shape"></use>
+                            <use href="#folderHighlightPath"    class="folder-highlight"></use>
                             <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                             <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                            <use href="#folderFacePath" class="folder-grain"></use>
+                            <use href="#folderFacePath"         class="folder-grain"></use>
                         </svg>
                         <span class="nav-content">
                             <span class="icon">
@@ -211,11 +219,11 @@
                             <div class="color-sheet"></div>
                             <NavLink class="folder-link" href="/admin/users">
                                 <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                                    <use href="#folderFacePath" class="folder-shape"></use>
-                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderFacePath"         class="folder-shape"></use>
+                                    <use href="#folderHighlightPath"    class="folder-highlight"></use>
                                     <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                                     <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                    <use href="#folderFacePath"         class="folder-grain"></use>
                                 </svg>
                                 <span class="nav-content">
                                     <span class="icon">
@@ -237,11 +245,11 @@
                             <div class="color-sheet"></div>
                             <NavLink class="folder-link" href="/admin/audit-log">
                                 <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                                    <use href="#folderFacePath" class="folder-shape"></use>
-                                    <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                    <use href="#folderFacePath"         class="folder-shape"></use>
+                                    <use href="#folderHighlightPath"    class="folder-highlight"></use>
                                     <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                                     <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                                    <use href="#folderFacePath" class="folder-grain"></use>
+                                    <use href="#folderFacePath"         class="folder-grain"></use>
                                 </svg>
                                 <span class="nav-content">
                                     <span class="icon">
@@ -269,11 +277,11 @@
                         <AntiforgeryToken />
                         <button type="submit" class="folder-link">
                             <svg class="folder-svg" viewBox="0 0 356 192" aria-hidden="true">
-                                <use href="#folderFacePathTall" class="folder-shape"></use>
-                                <use href="#folderHighlightPath" class="folder-highlight"></use>
+                                <use href="#folderFacePathTall"         class="folder-shape"></use>
+                                <use href="#folderHighlightPath"        class="folder-highlight"></use>
                                 <use href="#folderBottomShadowPathTall" class="folder-bottom-shadow"></use>
                                 <use href="#folderPocketShadowPathTall" class="folder-pocket-shadow"></use>
-                                <use href="#folderFacePathTall" class="folder-grain"></use>
+                                <use href="#folderFacePathTall"         class="folder-grain"></use>
                             </svg>
                             <span class="nav-content">
                                 <span class="icon">
@@ -297,11 +305,11 @@
                     <div class="color-sheet"></div>
                     <NavLink class="folder-link" href="/Account/Login">
                         <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
-                            <use href="#folderFacePath" class="folder-shape"></use>
-                            <use href="#folderHighlightPath" class="folder-highlight"></use>
+                            <use href="#folderFacePath"         class="folder-shape"></use>
+                            <use href="#folderHighlightPath"    class="folder-highlight"></use>
                             <use href="#folderBottomShadowPath" class="folder-bottom-shadow"></use>
                             <use href="#folderPocketShadowPath" class="folder-pocket-shadow"></use>
-                            <use href="#folderFacePath" class="folder-grain"></use>
+                            <use href="#folderFacePath"         class="folder-grain"></use>
                         </svg>
                         <span class="nav-content">
                             <span class="icon">
