@@ -2,15 +2,6 @@
    MANILA FOLDER NAV — NavMenu scoped styles
    ===================================================== */
 
-:root {
-    --ink: #2a241b;
-    --ink-soft: rgba(42, 36, 27, 0.92);
-    --paper-fiber-dark: rgba(100, 66, 20, 0.10);
-    --paper-fiber-mid: rgba(122, 81, 24, 0.06);
-    --paper-dot-dark: rgba(86, 55, 16, 0.16);
-    --paper-dot-light: rgba(255, 255, 255, 0.18);
-}
-
 /* ── Header envelope ─────────────────────────────── */
 
 .header-envelope {

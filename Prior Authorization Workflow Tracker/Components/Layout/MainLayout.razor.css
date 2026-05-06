@@ -39,10 +39,10 @@ article.content {
     inset: 0;
     pointer-events: none;
     background-image:
-        radial-gradient(rgba(86, 55, 16, 0.16) 0.45px, transparent 0.75px),
-        radial-gradient(rgba(255, 255, 255, 0.18) 0.45px, transparent 0.75px),
-        repeating-linear-gradient(8deg, transparent 0 5px, rgba(122, 81, 24, 0.06) 5px 6px, transparent 6px 12px),
-        repeating-linear-gradient(97deg, transparent 0 6px, rgba(100, 66, 20, 0.10) 6px 7px, transparent 7px 14px),
+        radial-gradient(var(--paper-dot-dark) 0.45px, transparent 0.75px),
+        radial-gradient(var(--paper-dot-light) 0.45px, transparent 0.75px),
+        repeating-linear-gradient(8deg, transparent 0 5px, var(--paper-fiber-mid) 5px 6px, transparent 6px 12px),
+        repeating-linear-gradient(97deg, transparent 0 6px, var(--paper-fiber-dark) 6px 7px, transparent 7px 14px),
         linear-gradient(180deg, rgba(255,255,255,0.05), rgba(102,67,20,0.05));
     background-size: 8px 8px, 14px 14px, 100% 100%, 100% 100%, 100% 100%;
     background-position: 0 0, 5px 6px, 0 0, 0 0, 0 0;
