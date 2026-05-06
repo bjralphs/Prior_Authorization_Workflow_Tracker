@@ -32,7 +32,10 @@ article.content {
         repeating-linear-gradient(0deg,   transparent, transparent  9px, rgba(110,140,190,0.10)  9px, rgba(110,140,190,0.10) 10px),
         repeating-linear-gradient(90deg,  transparent, transparent  9px, rgba(110,140,190,0.10)  9px, rgba(110,140,190,0.10) 10px);
     box-shadow:
-        0 16px 36px rgba(60, 80, 120, 0.16),
+        0 0 0 1px rgba(70, 100, 160, 0.18),
+        0 4px 12px rgba(50, 70, 120, 0.18),
+        0 16px 40px rgba(50, 70, 130, 0.22),
+        0 32px 64px rgba(40, 60, 110, 0.14),
         inset 0 1px 0 rgba(255, 255, 255, 0.40),
         inset 0 -8px 18px rgba(60, 80, 130, 0.08);
     overflow: visible;
