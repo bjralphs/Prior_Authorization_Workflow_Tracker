@@ -3,6 +3,7 @@
 @inject IReportingService ReportingSvc
 @inject ICsvExportService CsvExport
 @inject ICurrentUserService CurrentUser
+@inject IDateTimeProvider Clock
 @inject ToastService Toast
 @inject IJSRuntime JS
 @inject ILogger<Reports> Logger
@@ -579,8 +580,8 @@
     // ── Denial analysis ───────────────────────────────────────────────────────
     private bool _loadingDenials;
     private IReadOnlyList<DenialReasonSummary> _denials = [];
-    private DateTime _denialFrom = DateTime.UtcNow.AddMonths(-3);
-    private DateTime _denialTo   = DateTime.UtcNow;
+    private DateTime _denialFrom;
+    private DateTime _denialTo;
 
     // ── Monthly volume ────────────────────────────────────────────────────────
     private bool _loadingVolume;
@@ -596,27 +597,41 @@
     // ── Turnaround Time ───────────────────────────────────────────────────────
     private bool _loadingTurnaround;
     private IReadOnlyList<TurnaroundSummary> _turnaround = [];
-    private DateTime _turnaroundFrom = DateTime.UtcNow.AddMonths(-3);
-    private DateTime _turnaroundTo   = DateTime.UtcNow;
+    private DateTime _turnaroundFrom;
+    private DateTime _turnaroundTo;
 
     // ── Provider Volume ───────────────────────────────────────────────────────
     private bool _loadingProviderVolume;
     private IReadOnlyList<ProviderVolumeSummary> _providerVolume = [];
-    private DateTime _providerVolumeFrom = DateTime.UtcNow.AddMonths(-3);
-    private DateTime _providerVolumeTo   = DateTime.UtcNow;
+    private DateTime _providerVolumeFrom;
+    private DateTime _providerVolumeTo;
 
     // ── Approval Rate ──────────────────────────────────────────────────────────
     private bool _loadingApprovalRate;
     private IReadOnlyList<ApprovalRateSummary> _approvalRate = [];
-    private DateTime _approvalRateFrom = DateTime.UtcNow.AddMonths(-3);
-    private DateTime _approvalRateTo   = DateTime.UtcNow;
+    private DateTime _approvalRateFrom;
+    private DateTime _approvalRateTo;
 
     // ── Chart rendering ────────────────────────────────────────────────────────
     private bool _pendingChartRender;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
-        => await LoadStatusAsync();
+    {
+        // Initialise date-range defaults from the injected clock (NFR-009 — §15)
+        var now = Clock.UtcNow;
+        var threeMonthsAgo = now.AddMonths(-3);
+        _denialFrom        = threeMonthsAgo;
+        _denialTo          = now;
+        _turnaroundFrom    = threeMonthsAgo;
+        _turnaroundTo      = now;
+        _providerVolumeFrom = threeMonthsAgo;
+        _providerVolumeTo   = now;
+        _approvalRateFrom  = threeMonthsAgo;
+        _approvalRateTo    = now;
+
+        await LoadStatusAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -1,8 +1,8 @@
 # Architecture Overview
 
 **Application:** Prior Authorization Workflow Tracker  
-**Version:** 2.2 (Phase-2 remediation — PatientSearch filter GAP-10, Provider PendingInfo link GAP-07, aria-label GAP-09, ToastService scope fix GAP-13; 207 tests)
-**Last Updated:** 2026-05-05
+**Version:** 2.3 (V5 remediation — full `IDateTimeProvider` injection across all Razor components; accessibility labels complete; seeder integration tests; 225 tests)
+**Last Updated:** 2026-05-06
 
 ---
 
@@ -98,7 +98,7 @@ EF Core includes the `WHERE RowVersion = @p0` clause on every UPDATE. Concurrent
 `AuditService` also captures the current HTTP request's Correlation ID from `IHttpContextAccessor` and stores it in `AuditLog.CorrelationId`. The ID is placed in `HttpContext.Items["CorrelationId"]` by `CorrelationIdMiddleware` during request processing.
 
 ### 3.4 Clock Abstraction
-All time-sensitive service logic injects `IDateTimeProvider` instead of calling `DateTime.UtcNow` directly. `SystemDateTimeProvider` returns the real clock; `FakeDateTimeProvider` (test only) returns a fixed value. **All Razor components also inject `IDateTimeProvider`** — including `RequestDetail.razor` which uses `Clock.UtcNow` for overdue date highlighting, appeal deadline display, and appeal window gating (BUG-002 fix, NFR-009 compliance).
+All time-sensitive service logic injects `IDateTimeProvider` instead of calling `DateTime.UtcNow` directly. `SystemDateTimeProvider` returns the real clock; `FakeDateTimeProvider` (test only) returns a fixed value. **All Razor components inject `IDateTimeProvider`** — `RequestDetail.razor`, `Home.razor`, `Queue.razor`, and `Reports.razor` all use `Clock.UtcNow` instead of `DateTime.UtcNow` for any expression that affects rendering or service call parameters (NFR-009 compliance). The injected clock makes component behavior deterministic and independently testable.
 
 ### 3.5 ICurrentUserService Scope
 `CurrentUserService` is registered as **Scoped** (one per Blazor circuit). It caches `IsActive` after the first DB lookup within a circuit to avoid repeated queries. The `IpAddress` is captured from `IHttpContextAccessor` at construction time — before the connection upgrades to WebSocket, after which `HttpContext` is unavailable.

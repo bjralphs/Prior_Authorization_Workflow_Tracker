@@ -2,17 +2,18 @@
 @attribute [Authorize]
 @inject IReportingService ReportingSvc
 @inject ICurrentUserService CurrentUser
+@inject IDateTimeProvider Clock
 @inject NavigationManager Nav
 @inject ILogger<Home> Logger
 
-<PageTitle>Dashboard — PA Tracker</PageTitle>
+<PageTitle>Dashboard ï¿½ PA Tracker</PageTitle>
 <Breadcrumb Items="@(new[] { ("Dashboard", (string?)null) })" />
 
 @if (_loading)
 {
     <div class="d-flex justify-content-center py-5">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading…</span>
+            <span class="visually-hidden">Loadingï¿½</span>
         </div>
     </div>
 }
@@ -365,7 +366,7 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @* -- Admin panel — User Activity Summary + Audit Log Quick-Search (§12.1) -- *@
+    @* -- Admin panel ï¿½ User Activity Summary + Audit Log Quick-Search (ï¿½12.1) -- *@
     <AuthorizeView Roles="Administrator">
         <Authorized>
             <div class="card mb-4">
@@ -417,7 +418,7 @@ else
                             <h6 class="text-muted mb-2">Quick Audit Search</h6>
                             <div class="d-flex gap-2 mb-2">
                                 <input type="text" class="form-control form-control-sm"
-                                       placeholder="User name or email…"
+                                       placeholder="User name or emailï¿½"
                                        @bind="_adminQuickUser" @bind:event="oninput" />
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="Entity (e.g. PaRequest)"
@@ -538,7 +539,7 @@ else
                                             }
                                             else
                                             {
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted">ï¿½</span>
                                             }
                                         </td>
                                     </tr>
@@ -613,19 +614,19 @@ else
     private IReadOnlyList<RequestStatusSummary> _statusSummary = [];
     private IReadOnlyList<ExpiringAuthorization> _expiring = [];
 
-    // Role-specific dashboard state (T-B3–T-B8)
+    // Role-specific dashboard state (T-B3ï¿½T-B8)
     private SpecialistDashboard? _specialistDash;
     private ProviderDashboard?   _providerDash;
     private ReviewerDashboard?   _reviewerDash;
     private BillingDashboard?    _billingDash;
 
-    // Specialist activity feed (§12.1 GAP-02)
+    // Specialist activity feed (ï¿½12.1 GAP-02)
     private IReadOnlyList<RecentActivityItem> _recentActivity = [];
 
-    // Billing top-5 denial reasons (§12.1 GAP-04)
+    // Billing top-5 denial reasons (ï¿½12.1 GAP-04)
     private IReadOnlyList<DenialReasonSummary> _billingTopDenials = [];
 
-    // Admin panel state (§12.1)
+    // Admin panel state (ï¿½12.1)
     private IReadOnlyList<ProviderVolumeSummary> _adminVolume = [];
     private string _adminQuickUser   = string.Empty;
     private string _adminQuickEntity = string.Empty;
@@ -691,7 +692,7 @@ else
     private async Task LoadBillingDashAsync()
     {
         _billingDash = await ReportingSvc.GetBillingDashboardAsync();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(Clock.UtcNow);
         var from  = new DateOnly(today.Year, today.Month, 1);
         var denials = await ReportingSvc.GetDenialsByReasonAsync(from, today);
         _billingTopDenials = denials.OrderByDescending(d => d.Count).Take(5).ToList();
@@ -699,7 +700,7 @@ else
 
     private async Task LoadAdminVolumeAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(Clock.UtcNow);
         var from  = new DateOnly(today.Year, today.Month, 1);
         _adminVolume = await ReportingSvc.GetProviderVolumeAsync(from, today);
     }

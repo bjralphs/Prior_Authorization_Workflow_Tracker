@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Last Updated:** 2026-05-05 (Phase-2 remediation — GAP-07/09/10/13 complete; ToastService Scoped; PatientSearch filter added; 207 total tests)
+**Last Updated:** 2026-05-06 (V5 remediation — V5-T1 aria-labels, V5-T2–T4 IDateTimeProvider in all Razor components, V5-T5 seeder integration tests; 225 total tests)
 
 ---
 
@@ -9,7 +9,7 @@
 | Project | Framework | Status | Purpose |
 |---|---|---|---|
 | `Tests.Unit` | xUnit 2.9.2 + Moq 4.20.72 | ✅ 200 tests passing | Service layer logic, workflow rules, validation |
-| `Tests.Integration` | xUnit + Testcontainers.MsSql 3.10.0 | ✅ 8 tests passing | Concurrency (RowVersion), SQL view smoke tests, unique index enforcement |
+| `Tests.Integration` | xUnit + Testcontainers.MsSql 3.10.0 | ✅ 25 tests passing | Concurrency (RowVersion), SQL view smoke tests, unique index enforcement, **seeder volume and status distribution (V5-T5)** |
 
 **Note:** `Tests.Integration` explicitly uses Testcontainers rather than EF Core InMemory, because InMemory does not enforce FK constraints, does not support raw SQL, and cannot execute database views.
 
@@ -29,7 +29,7 @@
 | CsvExportService | — | ✅ 7 tests (RBAC, 18-column header, filename format, audit event, status filter, priority filter) |
 | ExpirationJob | — | ✅ 5 tests (no candidates, one expired, active skip, double-expiration guard, per-request failure isolation) |
 
-**Total: 200 unit + 8 integration = 208 tests, 0 failures.**
+**Total: 200 unit + 25 integration = 225 tests, 0 failures.**
 
 ---
 
@@ -221,6 +221,26 @@
 
 T-R2 is a pure markup refactoring (no behavior change). Existing manual workflow tests (approve/deny/appeal/withdraw/override) validate that the new Razor markup renders identical button sets to the former RenderFragment builder approach. No new unit tests added; behavior verified by existing WorkflowService + PaRequestService tests.
 
+### Seeder Volume & Distribution (V5-T5 — integration, 17 tests)
+
+- [x] `Seeder_PaRequestCount_IsExactly50` — total PA request count matches PRD §14.2
+- [x] `Seeder_StatusHistoryCount_IsAtLeast80` — history rows ≥ 80 (actual ~120)
+- [x] `Seeder_CommentCount_IsAtLeast60` — comments ≥ 60 (actual 72)
+- [x] `Seeder_DraftCount_IsExactly3` — §14.3 status distribution
+- [x] `Seeder_SubmittedCount_IsExactly6` — §14.3
+- [x] `Seeder_PendingInfoCount_IsExactly5` — §14.3
+- [x] `Seeder_UnderReviewCount_IsExactly7` — §14.3
+- [x] `Seeder_ApprovedCount_IsExactly15` — §14.3
+- [x] `Seeder_DeniedCount_IsExactly7` — §14.3
+- [x] `Seeder_AppealedCount_IsExactly3` — §14.3
+- [x] `Seeder_WithdrawnCount_IsExactly2` — §14.3
+- [x] `Seeder_ExpiredCount_IsExactly2` — §14.3
+- [x] `Seeder_DemoUserCount_IsAtLeast9` — 8 demo + SYSTEM reserved (§14.1)
+- [x] `Seeder_SystemUser_ExistsAndIsInactive` — SYSTEM account IsActive=false, cannot log in (§8.6)
+- [x] `Seeder_InsurancePlanCount_IsExactly8` — reference data (§14.2)
+- [x] `Seeder_ProcedureCodeCount_IsExactly25` — reference data (§14.2)
+- [x] `Seeder_DenialReasonCount_IsExactly12` — reference data (§14.2)
+
 ---
 
 ## Running Tests
@@ -264,3 +284,4 @@ dotnet test --verbosity normal
 | `Tests.Integration/WorkflowConcurrencyTests.cs` | 2 tests: concurrent RowVersion conflict + winner-data preservation (T-D6) |
 | `Tests.Integration/SqlViewSmokeTests.cs` | 4 tests: each of the four SQL reporting views queryable after migration |
 | `Tests.Integration/UniqueIndexTests.cs` | 2 tests: duplicate non-null `AuthorizationNumber` rejected; multiple NULLs allowed (partial index) |
+| `Tests.Integration/SeederIntegrationTests.cs` | **17 tests (V5-T5)**: exact PA request count (50), status distribution (Draft:3, Submitted:6, PendingInfo:5, UnderReview:7, Approved:15, Denied:7, Appealed:3, Withdrawn:2, Expired:2), status-history ≥80 rows, comments ≥60, demo user count ≥9, SYSTEM user IsActive=false, insurance plan count (8), procedure code count (25), denial reason count (12) |

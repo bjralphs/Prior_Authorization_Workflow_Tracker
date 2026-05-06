@@ -28,7 +28,7 @@
 {
     <div class="alert alert-danger alert-dismissible">
         @_errorMessage
-        <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+        <button type="button" class="btn-close" @onclick="() => _errorMessage = null" aria-label="Close"></button>
     </div>
 }
 
@@ -51,7 +51,7 @@
             {
                 <div class="alert alert-danger alert-dismissible py-2 mb-3">
                     @_formError
-                    <button type="button" class="btn-close" @onclick="() => _formError = null"></button>
+                    <button type="button" class="btn-close" @onclick="() => _formError = null" aria-label="Close"></button>
                 </div>
             }
             <div class="row g-3">

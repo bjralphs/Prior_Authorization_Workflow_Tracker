@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject IPaRequestService RequestSvc
 @inject ICurrentUserService CurrentUser
+@inject IDateTimeProvider Clock
 @inject NavigationManager Nav
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject ILogger<Queue> Logger
@@ -205,8 +206,8 @@ else
                             @if (item.DecisionDueDate.HasValue)
                             {
                                 var due = item.DecisionDueDate.Value;
-                                var isOverdue = due.Date < DateTime.UtcNow.Date;
-                                var isToday   = due.Date == DateTime.UtcNow.Date;
+                                var isOverdue = due.Date < Clock.UtcNow.Date;
+                                var isToday   = due.Date == Clock.UtcNow.Date;
                                 if (isOverdue)
                                 {
                                     <span class="badge bg-danger">Overdue</span>
