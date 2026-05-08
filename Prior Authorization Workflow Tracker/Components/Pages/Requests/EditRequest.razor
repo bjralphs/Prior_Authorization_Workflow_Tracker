@@ -314,7 +314,7 @@ else
         {
             await PaRequestSvc.DeleteDraftAsync(Id);
             Toast.ShowSuccess("Draft deleted.");
-            Nav.NavigateTo("/requests");
+            Nav.NavigateTo("requests");
         }
         catch (Exception ex)
         {
