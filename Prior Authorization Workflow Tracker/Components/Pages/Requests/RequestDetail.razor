@@ -2,16 +2,14 @@
 @attribute [Authorize]
 @inject IPaRequestService PaRequestSvc
 @inject IWorkflowService WorkflowSvc
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject Prior_Authorization_Workflow_Tracker.Services.Demo.DemoDataStore DemoStore
 @inject ICurrentUserService CurrentUser
 @inject IDateTimeProvider Clock
 @inject NavigationManager Nav
 @inject ToastService Toast
 @inject ILogger<RequestDetail> Logger
-@using Prior_Authorization_Workflow_Tracker.Data
 @using Prior_Authorization_Workflow_Tracker.Exceptions
 @using Prior_Authorization_Workflow_Tracker.Services.Models
-@using Microsoft.EntityFrameworkCore
 
 <PageTitle>@(_request?.RequestNumber ?? "Request Detail") — PA Tracker</PageTitle>
 
@@ -672,11 +670,10 @@ else
 
     private async Task LoadDenialReasonsAsync()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        _denialReasons = await db.DenialReasons
+        _denialReasons = DemoStore.DenialReasons
             .OrderBy(r => r.Code)
-            .AsNoTracking()
-            .ToListAsync();
+            .ToList();
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -696,13 +693,13 @@ else
 
         if (ids.Count == 0) return;
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-        _userNames = await db.Users
-            .AsNoTracking()
+        var userDict = DemoStore.Users
             .Where(u => ids.Contains(u.Id))
-            .ToDictionaryAsync(
+            .ToDictionary(
                 u => u.Id,
                 u => string.IsNullOrWhiteSpace(u.FullName) ? (u.Email ?? u.Id) : u.FullName);
+        _userNames = userDict;
+        await Task.CompletedTask;
     }
 
     // ── Action button helpers ─────────────────────────────────────────────────

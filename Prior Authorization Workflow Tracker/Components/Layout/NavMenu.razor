@@ -269,33 +269,29 @@
                     </Authorized>
                 </AuthorizeView>
 
-                @* Sign Out *@
+                @* Demo: role switching replaces Sign Out *@
                 <li class="nav-item signout">
                     <div class="folder-envelope"></div>
                     <div class="color-sheet"></div>
-                    <form method="post" action="/Account/Logout">
-                        <AntiforgeryToken />
-                        <button type="submit" class="folder-link">
-                            <svg class="folder-svg" viewBox="0 0 356 192" aria-hidden="true">
-                                <use href="#folderFacePathTall"         class="folder-shape"></use>
-                                <use href="#folderHighlightPath"        class="folder-highlight"></use>
-                                <use href="#folderBottomShadowPathTall" class="folder-bottom-shadow"></use>
-                                <use href="#folderPocketShadowPathTall" class="folder-pocket-shadow"></use>
-                                <use href="#folderFacePathTall"         class="folder-grain"></use>
-                            </svg>
-                            <span class="nav-content">
-                                <span class="icon">
-                                    <svg viewBox="0 0 24 24">
-                                        <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"></path>
-                                        <path d="M15 8l4 4-4 4"></path>
-                                        <line x1="19" y1="12" x2="9" y2="12"></line>
-                                    </svg>
-                                </span>
-                                <span class="divider"></span>
-                                <span class="label">Sign Out</span>
+                    <NavLink class="folder-link" href="/">
+                        <svg class="folder-svg" viewBox="0 0 356 192" aria-hidden="true">
+                            <use href="#folderFacePathTall"         class="folder-shape"></use>
+                            <use href="#folderHighlightPath"        class="folder-highlight"></use>
+                            <use href="#folderBottomShadowPathTall" class="folder-bottom-shadow"></use>
+                            <use href="#folderPocketShadowPathTall" class="folder-pocket-shadow"></use>
+                            <use href="#folderFacePathTall"         class="folder-grain"></use>
+                        </svg>
+                        <span class="nav-content">
+                            <span class="icon">
+                                <svg viewBox="0 0 24 24">
+                                    <circle cx="12" cy="8" r="4"></circle>
+                                    <path d="M6 20v-1a6 6 0 0 1 12 0v1"></path>
+                                </svg>
                             </span>
-                        </button>
-                    </form>
+                            <span class="divider"></span>
+                            <span class="label">Switch Role</span>
+                        </span>
+                    </NavLink>
                 </li>
 
             </Authorized>
@@ -303,7 +299,7 @@
                 <li class="nav-item dashboard">
                     <div class="folder-envelope"></div>
                     <div class="color-sheet"></div>
-                    <NavLink class="folder-link" href="/Account/Login">
+                    <NavLink class="folder-link" href="/">
                         <svg class="folder-svg" viewBox="0 0 356 108" aria-hidden="true">
                             <use href="#folderFacePath"         class="folder-shape"></use>
                             <use href="#folderHighlightPath"    class="folder-highlight"></use>
@@ -314,13 +310,14 @@
                         <span class="nav-content">
                             <span class="icon">
                                 <svg viewBox="0 0 24 24">
-                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                                    <polyline points="10 17 15 12 10 7"></polyline>
-                                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
                                 </svg>
                             </span>
                             <span class="divider"></span>
-                            <span class="label">Sign In</span>
+                            <span class="label">Dashboard</span>
                         </span>
                     </NavLink>
                 </li>

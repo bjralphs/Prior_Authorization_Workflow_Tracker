@@ -1,5 +1,14 @@
 // PA Tracker — client-side helpers
 
+// ── GitHub Pages SPA routing: restore deep-link saved by 404.html ─────────────
+(function () {
+    var redirect = sessionStorage.redirect;
+    delete sessionStorage.redirect;
+    if (redirect && redirect !== location.href) {
+        history.replaceState(null, null, redirect);
+    }
+}());
+
 // Chart.js wrapper — creates or replaces a chart on a canvas element.
 // Called from Blazor via IJSRuntime after each data load.
 window.paCharts = {};

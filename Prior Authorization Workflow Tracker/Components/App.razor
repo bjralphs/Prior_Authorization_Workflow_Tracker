@@ -4,46 +4,20 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
-    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["Prior_Authorization_Workflow_Tracker.styles.css"]" />
-    <ImportMap />
+    <base href="/Prior_Authorization_Workflow_Tracker/" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="Prior_Authorization_Workflow_Tracker.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer" />
-
-    <!-- SignalR reconnect overlay (NFR-011) -->
-    <div id="components-reconnect-modal">
-        <div class="reconnect-dialog">
-            <div class="reconnect-message-show">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Reconnecting…</span>
-                </div>
-                <p class="fw-semibold mb-1">Connection lost</p>
-                <p class="text-muted small mb-0">Attempting to reconnect to the server…</p>
-            </div>
-            <div class="reconnect-message-failed">
-                <p class="fw-semibold text-danger mb-1">Unable to reconnect</p>
-                <p class="text-muted small mb-2">The connection to the server has been lost.</p>
-                <button class="btn btn-primary btn-sm" onclick="window.location.reload()">
-                    Reload page
-                </button>
-            </div>
-            <div class="reconnect-message-rejected">
-                <p class="fw-semibold text-danger mb-1">Session expired</p>
-                <p class="text-muted small mb-2">Your session is no longer valid.</p>
-                <button class="btn btn-primary btn-sm" onclick="window.location.href='/Account/Login'">Sign in again</button>
-            </div>
-        </div>
-    </div>
+    <Routes />
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="app.js"></script>
-    <script src="_framework/blazor.web.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
 </body>
 
 </html>

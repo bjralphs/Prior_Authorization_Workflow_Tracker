@@ -2,14 +2,12 @@
 @attribute [Authorize(Roles = "Authorization Specialist,Administrator")]
 @inject IPaRequestService PaRequestSvc
 @inject IWorkflowService WorkflowSvc
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject Prior_Authorization_Workflow_Tracker.Services.Demo.DemoDataStore DemoStore
 @inject NavigationManager Nav
 @inject ToastService Toast
 @inject ILogger<EditRequest> Logger
-@using Prior_Authorization_Workflow_Tracker.Data
 @using Prior_Authorization_Workflow_Tracker.Exceptions
 @using Prior_Authorization_Workflow_Tracker.Services.Models
-@using Microsoft.EntityFrameworkCore
 
 <PageTitle>Edit Request — PA Tracker</PageTitle>
 
@@ -227,17 +225,14 @@ else
         _model.Priority               = _request.Priority;
         _model.ClinicalJustification  = _request.ClinicalJustification ?? string.Empty;
 
-        await using var db = await DbFactory.CreateDbContextAsync();
-        _insurancePlans = await db.InsurancePlans
+        _insurancePlans = DemoStore.InsurancePlans
             .Where(p => p.IsActive)
             .OrderBy(p => p.PlanName)
-            .AsNoTracking()
-            .ToListAsync();
-        _procedureCodes = await db.ProcedureCodes
+            .ToList();
+        _procedureCodes = DemoStore.ProcedureCodes
             .Where(p => p.RequiresPriorAuth && p.IsActive)
             .OrderBy(p => p.Code)
-            .AsNoTracking()
-            .ToListAsync();
+            .ToList();
     }
 
     private void ParseDob(string? value)

@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
 
+<RoleSwitcher />
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -14,9 +16,6 @@
                         Signed in as <strong>@context.User.Identity?.Name</strong>
                     </span>
                 </Authorized>
-                <NotAuthorized>
-                    <a href="/Account/Login" class="btn btn-sm btn-outline-primary">Sign In</a>
-                </NotAuthorized>
             </AuthorizeView>
         </div>
 

@@ -1,9 +1,7 @@
 @page "/admin/audit-log"
 @attribute [Authorize(Roles = "Administrator")]
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject Prior_Authorization_Workflow_Tracker.Services.Demo.DemoDataStore DemoStore
 @inject ILogger<AuditLog> Logger
-@using Prior_Authorization_Workflow_Tracker.Data
-@using Microsoft.EntityFrameworkCore
 
 <PageTitle>Audit Log — PA Tracker</PageTitle>
 <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Admin", (string?)null), ("Audit Log", (string?)null) })" />
@@ -192,34 +190,28 @@ else
         _loading = true;
         try
         {
-            await using var db = await DbFactory.CreateDbContextAsync();
-
-            var query = db.AuditLogs.AsNoTracking().AsQueryable();
+            var all = DemoStore.AuditLogs.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(_filterEntity))
-                query = query.Where(a => a.EntityName.Contains(_filterEntity));
+                all = all.Where(a => a.EntityName.Contains(_filterEntity, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(_filterAction))
-                query = query.Where(a => a.Action.Contains(_filterAction));
+                all = all.Where(a => a.Action.Contains(_filterAction, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(_filterUser))
-                query = query.Where(a =>
-                    (a.UserName != null && a.UserName.Contains(_filterUser)) ||
-                    a.UserID.Contains(_filterUser));
+                all = all.Where(a =>
+                    (a.UserName != null && a.UserName.Contains(_filterUser, StringComparison.OrdinalIgnoreCase)) ||
+                    a.UserID.Contains(_filterUser, StringComparison.OrdinalIgnoreCase));
 
             if (_filterFrom.HasValue)
-                query = query.Where(a => a.OccurredAt >= _filterFrom.Value);
+                all = all.Where(a => a.OccurredAt >= _filterFrom.Value);
 
             if (_filterTo.HasValue)
-                query = query.Where(a => a.OccurredAt <= _filterTo.Value.AddDays(1));
+                all = all.Where(a => a.OccurredAt <= _filterTo.Value.AddDays(1));
 
-            _totalCount = await query.CountAsync();
-
-            _entries = await query
-                .OrderByDescending(a => a.OccurredAt)
-                .Skip((_page - 1) * PageSize)
-                .Take(PageSize)
-                .ToListAsync();
+            var list = all.OrderByDescending(a => a.OccurredAt).ToList();
+            _totalCount = list.Count;
+            _entries = list.Skip((_page - 1) * PageSize).Take(PageSize).ToList();
         }
         catch (Exception ex)
         {

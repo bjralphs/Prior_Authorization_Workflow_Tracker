@@ -2,13 +2,11 @@
 @attribute [Authorize(Roles = "Authorization Specialist,Administrator")]
 @inject IPaRequestService PaRequestSvc
 @inject IWorkflowService WorkflowSvc
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject Prior_Authorization_Workflow_Tracker.Services.Demo.DemoDataStore DemoStore
 @inject NavigationManager Nav
 @inject ToastService Toast
 @inject ILogger<SubmitRequest> Logger
-@using Prior_Authorization_Workflow_Tracker.Data
 @using Prior_Authorization_Workflow_Tracker.Exceptions
-@using Microsoft.EntityFrameworkCore
 
 <PageTitle>Submit Request — PA Tracker</PageTitle>
 <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", "/requests"), ("New Request", (string?)null) })" />
@@ -198,38 +196,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        _insurancePlans = await db.InsurancePlans
+        _insurancePlans = DemoStore.InsurancePlans
             .Where(p => p.IsActive)
             .OrderBy(p => p.PlanName)
-            .AsNoTracking()
-            .ToListAsync();
-        _procedureCodes = await db.ProcedureCodes
+            .ToList();
+        _procedureCodes = DemoStore.ProcedureCodes
             .Where(p => p.RequiresPriorAuth && p.IsActive)
             .OrderBy(p => p.Code)
-            .AsNoTracking()
-            .ToListAsync();
-
-        // Load active Treating Provider accounts for the dropdown (T-B1 / BUG-G).
-        // Join AspNetUserRoles → AspNetRoles to filter by role name without UserManager.
-        var providerRoleId = await db.Roles
-            .Where(r => r.Name == Prior_Authorization_Workflow_Tracker.Constants.Roles.Provider)
-            .Select(r => r.Id)
-            .FirstOrDefaultAsync();
-
-        if (providerRoleId is not null)
-        {
-            var providerIds = await db.UserRoles
-                .Where(ur => ur.RoleId == providerRoleId)
-                .Select(ur => ur.UserId)
-                .ToListAsync();
-
-            _providers = await db.Users
-                .Where(u => providerIds.Contains(u.Id) && u.IsActive)
-                .OrderBy(u => u.FullName)
-                .AsNoTracking()
-                .ToListAsync();
-        }
+            .ToList();
+        _providers = DemoStore.Users
+            .Where(u => u.Role == Prior_Authorization_Workflow_Tracker.Constants.Roles.Provider)
+            .Select(du => new ApplicationUser { Id = du.Id, FullName = du.FullName, Email = du.Email })
+            .OrderBy(u => u.FullName)
+            .ToList();
+        await Task.CompletedTask;
     }
 
     private void ParseDob(string? value)

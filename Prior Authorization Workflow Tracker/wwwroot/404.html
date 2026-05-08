@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>PA Tracker</title>
+    <!--
+        GitHub Pages SPA routing workaround.
+        When GitHub Pages returns a 404 for a deep-link (e.g. /requests/queue),
+        this page saves the full URL to sessionStorage, then redirects to the
+        app root. The app's index.html reads sessionStorage on load and
+        replaces the history entry so the correct route renders.
+        Technique adapted from: https://github.com/rafgraph/spa-github-pages
+    -->
+    <script>
+        sessionStorage.redirect = location.href;
+    </script>
+    <meta http-equiv="refresh" content="0;URL='/Prior_Authorization_Workflow_Tracker/'" />
+</head>
+<body></body>
+</html>

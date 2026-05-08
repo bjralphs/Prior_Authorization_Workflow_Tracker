@@ -4,10 +4,8 @@
 @inject ICurrentUserService CurrentUser
 @inject IDateTimeProvider Clock
 @inject NavigationManager Nav
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject Prior_Authorization_Workflow_Tracker.Services.Demo.DemoDataStore DemoStore
 @inject ILogger<Queue> Logger
-@using Prior_Authorization_Workflow_Tracker.Data
-@using Microsoft.EntityFrameworkCore
 
 <PageTitle>Request Queue — PA Tracker</PageTitle>
 <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", (string?)null) })" />
@@ -296,25 +294,20 @@ else
     {
         try
         {
-            await using var db = await DbFactory.CreateDbContextAsync();
-            _plans = await db.InsurancePlans
-                .AsNoTracking()
+            _plans = DemoStore.InsurancePlans
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.PayerName)
-                .ToListAsync();
-            _procedureCodes = await db.ProcedureCodes
-                .AsNoTracking()
+                .ToList();
+            _procedureCodes = DemoStore.ProcedureCodes
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.Code)
-                .ToListAsync();
-            _reviewers = await db.Users
-                .AsNoTracking()
-                .Join(db.UserRoles, u => u.Id, ur => ur.UserId, (u, ur) => new { User = u, ur.RoleId })
-                .Join(db.Roles, x => x.RoleId, r => r.Id, (x, r) => new { x.User, RoleName = r.Name })
-                .Where(x => x.RoleName == Constants.Roles.Reviewer)
-                .Select(x => x.User)
+                .ToList();
+            _reviewers = DemoStore.Users
+                .Where(u => u.Role == Constants.Roles.Reviewer)
+                .Select(du => new ApplicationUser { Id = du.Id, FullName = du.FullName, Email = du.Email })
                 .OrderBy(u => u.FullName)
-                .ToListAsync();
+                .ToList();
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {

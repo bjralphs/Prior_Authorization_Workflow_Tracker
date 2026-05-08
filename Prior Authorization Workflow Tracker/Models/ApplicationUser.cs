@@ -1,12 +1,23 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace Prior_Authorization_Workflow_Tracker.Models;
 
 /// <summary>
-/// Extends ASP.NET Core Identity user with application-specific fields (§7.1).
+/// User entity. In the demo branch this is a plain POCO (no Identity dependency).
+/// The real app extends IdentityUser; the demo stores users in DemoDataStore.
 /// </summary>
-public class ApplicationUser : IdentityUser
+public class ApplicationUser
 {
+    public string Id { get; set; } = string.Empty;
+    public string? UserName { get; set; }
+    public string? Email { get; set; }
+    public string? NormalizedEmail { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? SecurityStamp { get; set; }
+    public string? ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
+    public bool LockoutEnabled { get; set; }
+    public bool TwoFactorEnabled { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public bool PhoneNumberConfirmed { get; set; }
+
     /// <summary>Display name shown in the UI and denormalized into AuditLogs.</summary>
     public string FullName { get; set; } = string.Empty;
 

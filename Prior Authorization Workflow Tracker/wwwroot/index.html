@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PA Tracker — Demo</title>
+    <base href="/Prior_Authorization_Workflow_Tracker/" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="Prior_Authorization_Workflow_Tracker.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+</head>
+
+<body>
+    <div id="app">
+        <!-- Loading splash while the WASM runtime boots -->
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#fdf6ec;font-family:sans-serif;">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:1rem;">
+                <rect width="64" height="64" rx="12" fill="#efcc82"/>
+                <rect x="14" y="18" width="36" height="4" rx="2" fill="#8b5e1a"/>
+                <rect x="14" y="28" width="28" height="4" rx="2" fill="#8b5e1a"/>
+                <rect x="14" y="38" width="20" height="4" rx="2" fill="#8b5e1a"/>
+            </svg>
+            <p style="color:#6b4c1a;font-size:1.1rem;font-weight:600;">PA Tracker</p>
+            <p style="color:#a07840;font-size:.85rem;">Loading demo…</p>
+        </div>
+    </div>
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>
