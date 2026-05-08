@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Prior_Authorization_Workflow_Tracker.Constants
 @implements IDisposable
+@inject IJSRuntime JS
 @inject INotificationService NotifSvc
 @inject ICurrentUserService CurrentUser
 @inject NavigationManager Nav
@@ -269,11 +270,11 @@
                     </Authorized>
                 </AuthorizeView>
 
-                @* Demo: role switching replaces Sign Out *@
+                @* Demo: role switching — plain anchor so it never gets the active CSS class *@
                 <li class="nav-item signout">
                     <div class="folder-envelope"></div>
                     <div class="color-sheet"></div>
-                    <NavLink class="folder-link" href="">
+                    <a class="folder-link" href="#" @onclick="ScrollToRoleSwitcher" @onclick:preventDefault>
                         <svg class="folder-svg" viewBox="0 0 356 192" aria-hidden="true">
                             <use href="#folderFacePathTall"         class="folder-shape"></use>
                             <use href="#folderHighlightPath"        class="folder-highlight"></use>
@@ -291,7 +292,7 @@
                             <span class="divider"></span>
                             <span class="label">Switch Role</span>
                         </span>
-                    </NavLink>
+                    </a>
                 </li>
 
             </Authorized>
@@ -373,5 +374,8 @@
         Nav.LocationChanged -= OnLocationChanged;
         _refreshTimer?.Dispose();
     }
+
+    private async Task ScrollToRoleSwitcher()
+        => await JS.InvokeVoidAsync("document.getElementById('role-switcher')?.scrollIntoView", new { behavior = "smooth" });
 }
 
