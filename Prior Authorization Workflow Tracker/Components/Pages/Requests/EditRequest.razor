@@ -24,7 +24,7 @@ else if (_request is null)
 }
 else
 {
-    <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", "/requests"), (_request.RequestNumber, $"/requests/{Id}"), ("Edit", (string?)null) })" />
+    <Breadcrumb Items="@(new[] { ("Dashboard", ""), ("Request Queue", "requests"), (_request.RequestNumber, $"requests/{Id}"), ("Edit", (string?)null) })" />
 
     <div class="d-flex align-items-center mb-4 gap-2">
         <h4 class="mb-0">Edit — @_request.RequestNumber</h4>

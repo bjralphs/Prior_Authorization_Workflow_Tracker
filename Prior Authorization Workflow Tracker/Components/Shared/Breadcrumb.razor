@@ -1,6 +1,6 @@
 @* Breadcrumb — renders a Bootstrap breadcrumb from a list of (Label, Href) tuples (§16.2)
    Usage:
-     <Breadcrumb Items="@(new[] { ("Dashboard", "/"), ("Request Queue", "/requests"), ("Detail", null) })" />
+     <Breadcrumb Items="@(new[] { ("Dashboard", ""), ("Request Queue", "requests"), ("Detail", null) })" />
 *@
 
 @if (Items is { Length: > 0 })
