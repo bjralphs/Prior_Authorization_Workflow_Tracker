@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Prior_Authorization_Workflow_Tracker.Components;
 using Prior_Authorization_Workflow_Tracker.Services;
@@ -8,7 +7,6 @@ using Prior_Authorization_Workflow_Tracker.Services.Demo;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
-builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // ── Demo: clock ───────────────────────────────────────────────────────────────
 builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
