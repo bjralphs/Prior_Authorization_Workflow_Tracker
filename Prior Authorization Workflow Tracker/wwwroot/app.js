@@ -9,6 +9,15 @@
     }
 }());
 
+// ── Demo: open the role-switcher <select> dropdown ───────────────────────────
+window.openRoleSwitcher = function () {
+    var sel = document.querySelector('#role-switcher select');
+    if (!sel) return;
+    sel.focus();
+    // Simulate a mousedown so browsers open the native <select> dropdown
+    sel.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+};
+
 // Chart.js wrapper — creates or replaces a chart on a canvas element.
 // Called from Blazor via IJSRuntime after each data load.
 window.paCharts = {};

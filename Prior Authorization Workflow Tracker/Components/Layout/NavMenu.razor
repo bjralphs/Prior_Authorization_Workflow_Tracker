@@ -274,7 +274,7 @@
                 <li class="nav-item signout">
                     <div class="folder-envelope"></div>
                     <div class="color-sheet"></div>
-                    <a class="folder-link" href="#" @onclick="ScrollToRoleSwitcher" @onclick:preventDefault>
+                    <a class="folder-link" href="#" @onclick="OpenRoleSwitcher" @onclick:preventDefault>
                         <svg class="folder-svg" viewBox="0 0 356 192" aria-hidden="true">
                             <use href="#folderFacePathTall"         class="folder-shape"></use>
                             <use href="#folderHighlightPath"        class="folder-highlight"></use>
@@ -375,7 +375,7 @@
         _refreshTimer?.Dispose();
     }
 
-    private async Task ScrollToRoleSwitcher()
-        => await JS.InvokeVoidAsync("document.getElementById('role-switcher')?.scrollIntoView", new { behavior = "smooth" });
+    private async Task OpenRoleSwitcher()
+        => await JS.InvokeVoidAsync("openRoleSwitcher");
 }
 
