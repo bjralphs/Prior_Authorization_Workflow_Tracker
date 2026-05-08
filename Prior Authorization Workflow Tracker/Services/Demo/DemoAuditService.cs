@@ -1,4 +1,5 @@
 using Prior_Authorization_Workflow_Tracker.Models;
+using Prior_Authorization_Workflow_Tracker.Services.Abstractions;
 
 namespace Prior_Authorization_Workflow_Tracker.Services.Demo;
 
@@ -8,10 +9,10 @@ namespace Prior_Authorization_Workflow_Tracker.Services.Demo;
 /// </summary>
 public sealed class DemoAuditService : IAuditService
 {
-    private readonly DemoDataStore           _store;
-    private readonly DemoCurrentUserService  _currentUser;
+    private readonly DemoDataStore       _store;
+    private readonly ICurrentUserService  _currentUser;
 
-    public DemoAuditService(DemoDataStore store, DemoCurrentUserService currentUser)
+    public DemoAuditService(DemoDataStore store, ICurrentUserService currentUser)
     {
         _store       = store;
         _currentUser = currentUser;

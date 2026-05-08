@@ -1,6 +1,7 @@
 using CsvHelper;
 using CsvHelper.Configuration;
 using Prior_Authorization_Workflow_Tracker.Models;
+using Prior_Authorization_Workflow_Tracker.Services.Abstractions;
 using Prior_Authorization_Workflow_Tracker.Services.Models;
 using System.Globalization;
 using System.Text;
@@ -10,11 +11,11 @@ namespace Prior_Authorization_Workflow_Tracker.Services.Demo;
 /// <summary>Generates CSV from the in-memory store using CsvHelper (same as production).</summary>
 public sealed class DemoCsvExportService : ICsvExportService
 {
-    private readonly DemoDataStore          _store;
-    private readonly DemoCurrentUserService _currentUser;
-    private readonly IPaRequestService      _requests;
+    private readonly DemoDataStore       _store;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IPaRequestService   _requests;
 
-    public DemoCsvExportService(DemoDataStore store, DemoCurrentUserService currentUser, IPaRequestService requests)
+    public DemoCsvExportService(DemoDataStore store, ICurrentUserService currentUser, IPaRequestService requests)
     {
         _store       = store;
         _currentUser = currentUser;

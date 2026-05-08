@@ -10,14 +10,14 @@ namespace Prior_Authorization_Workflow_Tracker.Services.Demo;
 public sealed class DemoPaRequestService : IPaRequestService
 {
     private readonly DemoDataStore          _store;
-    private readonly DemoCurrentUserService _currentUser;
+    private readonly ICurrentUserService   _currentUser;
     private readonly IAuditService          _audit;
     private readonly IBusinessRuleService   _rules;
     private readonly IDateTimeProvider      _clock;
 
     public DemoPaRequestService(
         DemoDataStore store,
-        DemoCurrentUserService currentUser,
+        ICurrentUserService currentUser,
         IAuditService audit,
         IBusinessRuleService rules,
         IDateTimeProvider clock)
