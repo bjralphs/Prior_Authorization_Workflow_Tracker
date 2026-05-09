@@ -322,7 +322,7 @@
                         @foreach (var row in _expiring)
                         {
                             <tr>
-                                <td><a href="/requests/@row.RequestId">@row.RequestNumber</a></td>
+                                <td><a href="requests/@row.RequestId">@row.RequestNumber</a></td>
                                 <td>@row.PatientName</td>
                                 <td><code>@(row.AuthorizationNumber ?? "—")</code></td>
                                 <td class="text-end">@row.AuthorizationEndDate.ToString("yyyy-MM-dd")</td>

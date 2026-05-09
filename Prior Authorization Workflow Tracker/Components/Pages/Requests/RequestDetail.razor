@@ -17,7 +17,7 @@
 {
     <div class="alert alert-warning mt-4">
         <strong>Not found.</strong> This request does not exist or you don't have access to view it.
-        <a href="/requests" class="alert-link ms-2">Back to Queue</a>
+        <a href="requests" class="alert-link ms-2">Back to Queue</a>
     </div>
 }
 else if (_request is null)
@@ -40,7 +40,7 @@ else
             <Authorized>
                 @if (_request.Status == PaStatus.Draft || _request.Status == PaStatus.PendingInfo)
                 {
-                    <a href="/requests/@Id/edit" class="btn btn-sm btn-outline-secondary ms-auto">Edit</a>
+                    <a href="requests/@Id/edit" class="btn btn-sm btn-outline-secondary ms-auto">Edit</a>
                 }
                 @if (_request.Status == PaStatus.Draft)
                 {

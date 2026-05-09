@@ -14,7 +14,7 @@
     <h4 class="mb-0">PA Request Queue</h4>
     <AuthorizeView Roles="@($"{Roles.Specialist},{Roles.Admin}")">
         <Authorized>
-            <a href="/requests/new" class="btn btn-primary btn-sm">
+            <a href="requests/new" class="btn btn-primary btn-sm">
                 + Submit New Request
             </a>
         </Authorized>
@@ -166,13 +166,13 @@ else
                 {
                     var rowClass = RowClass(item);
                     <tr class="@rowClass" style="cursor:pointer;"
-                        @onclick="@(() => Nav.NavigateTo($"/requests/{item.ID}"))">
+                        @onclick="@(() => Nav.NavigateTo($"requests/{item.ID}"))">
                         <td>
                             <div class="fw-semibold">@item.PatientName</div>
                             <div class="text-muted small">@item.PatientMrn</div>
                         </td>
                         <td>
-                            <a href="/requests/@item.ID" @onclick:stopPropagation>
+                            <a href="requests/@item.ID" @onclick:stopPropagation>
                                 @item.RequestNumber
                             </a>
                         </td>

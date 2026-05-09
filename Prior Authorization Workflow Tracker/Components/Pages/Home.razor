@@ -36,7 +36,7 @@ else
                             <div class="card-body">
                                 <div class="text-muted small">My Drafts</div>
                                 <div class="display-6 fw-bold text-secondary">@_specialistDash.MyDrafts</div>
-                                <a href="/requests?status=Draft" class="small">View drafts ?</a>
+                                <a href="requests?status=Draft" class="small">View drafts ?</a>
                             </div>
                         </div>
                     </div>
@@ -55,7 +55,7 @@ else
                                 <div class="display-6 fw-bold text-warning">@_specialistDash.MyPendingInfo</div>
                                 @if (_specialistDash.MyPendingInfo > 0)
                                 {
-                                    <a href="/requests?status=PendingInfo" class="small">Respond now ?</a>
+                                    <a href="requests?status=PendingInfo" class="small">Respond now ?</a>
                                 }
                             </div>
                         </div>
@@ -81,7 +81,7 @@ else
                     <div class="col-sm-4">
                         <div class="card border-warning h-100">
                             <div class="card-body text-center">
-                                <div class="text-muted small">My Auths Expiring = 30 days</div>
+                                <div class="text-muted small">My Auths Expiring ≤ 30 days</div>
                                 <div class="fs-3 fw-semibold text-warning">@_specialistDash.MyExpiringSoon</div>
                             </div>
                         </div>
@@ -113,7 +113,7 @@ else
                                 @foreach (var item in _recentActivity)
                                 {
                                     <tr>
-                                        <td><a href="/requests/@item.RequestId" class="small">@item.RequestNumber</a></td>
+                                        <td><a href="requests/@item.RequestId" class="small">@item.RequestNumber</a></td>
                                         <td class="small">@item.PatientName</td>
                                         <td><StatusBadge Status="item.NewStatus" /></td>
                                         <td class="small text-muted">@item.OccurredAt.ToString("MMM d, HH:mm")</td>
@@ -156,7 +156,7 @@ else
                                 <div class="display-6 fw-bold text-warning">@_providerDash.MyPendingInfo</div>
                                 @if (_providerDash.MyPendingInfo > 0)
                                 {
-                                    <a href="/requests?status=PendingInfo" class="small">Respond now ?</a>
+                                    <a href="requests?status=PendingInfo" class="small">Respond now ?</a>
                                 }
                             </div>
                         </div>
@@ -194,7 +194,7 @@ else
                                 <div class="display-6 fw-bold text-danger">@_reviewerDash.AwaitingReview</div>
                                 @if (_reviewerDash.AwaitingReview > 0)
                                 {
-                                    <a href="/requests?status=Submitted" class="small">Review queue ?</a>
+                                    <a href="requests?status=Submitted" class="small">Review queue ?</a>
                                 }
                             </div>
                         </div>
@@ -282,7 +282,7 @@ else
                     <div class="col-sm-6 col-xl-4">
                         <div class="card border-warning h-100">
                             <div class="card-body">
-                                <div class="text-muted small">Expiring = 30 days</div>
+                                <div class="text-muted small">Expiring ≤ 30 days</div>
                                 <div class="display-6 fw-bold text-warning">@_billingDash.ExpiringSoon</div>
                             </div>
                         </div>
@@ -323,7 +323,7 @@ else
                     </div>
                 </div>
                 <div class="mb-3">
-                    <a href="/reports" class="btn btn-outline-success btn-sm">
+                    <a href="reports" class="btn btn-outline-success btn-sm">
                         <span class="bi bi-file-earmark-spreadsheet me-1"></span>Open Reports &amp; CSV Export
                     </a>
                 </div>
@@ -373,8 +373,8 @@ else
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Admin Panel</span>
                     <div class="d-flex gap-2">
-                        <a href="/admin/users" class="btn btn-outline-secondary btn-sm">User Management</a>
-                        <a href="/admin/audit-log" class="btn btn-outline-secondary btn-sm">Full Audit Log</a>
+                        <a href="admin/users" class="btn btn-outline-secondary btn-sm">User Management</a>
+                        <a href="admin/audit-log" class="btn btn-outline-secondary btn-sm">Full Audit Log</a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -426,7 +426,7 @@ else
                             </div>
                             <div class="d-flex gap-2">
                                 <button class="btn btn-primary btn-sm" @onclick="AdminQuickSearch">Search</button>
-                                <a href="/admin/audit-log" class="btn btn-outline-secondary btn-sm">Clear</a>
+                                <a href="admin/audit-log" class="btn btn-outline-secondary btn-sm">Clear</a>
                             </div>
                         </div>
 
@@ -468,7 +468,7 @@ else
                 <div class="col-sm-6 col-xl-3">
                     <div class="card border-secondary h-100">
                         <div class="card-body">
-                            <div class="text-muted small">Expiring = 30 days</div>
+                                <div class="text-muted small">Expiring ≤ 30 days</div>
                             <div class="display-6 fw-bold text-secondary">@_summary!.ExpiringSoon</div>
                         </div>
                     </div>
@@ -578,7 +578,7 @@ else
                                 {
                                     <tr>
                                         <td>
-                                            <a href="/requests/@item.RequestId">@item.RequestNumber</a>
+                                            <a href="requests/@item.RequestId">@item.RequestNumber</a>
                                         </td>
                                         <td>@item.PatientName</td>
                                         <td class="text-end">

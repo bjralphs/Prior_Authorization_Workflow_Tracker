@@ -15,7 +15,7 @@
 {
     <div class="alert alert-warning mt-4">
         <strong>Not found.</strong> This request does not exist or you don't have access to edit it.
-        <a href="/requests" class="alert-link ms-2">Back to Queue</a>
+        <a href="requests" class="alert-link ms-2">Back to Queue</a>
     </div>
 }
 else if (_request is null)
@@ -151,7 +151,7 @@ else
                                 </button>
                             }
 
-                            <a href="/requests/@Id" class="btn btn-link @(_request.Status != PaStatus.Draft ? "ms-auto" : "")">
+                            <a href="requests/@Id" class="btn btn-link @(_request.Status != PaStatus.Draft ? "ms-auto" : "")">
                                 Cancel
                             </a>
                         </div>
